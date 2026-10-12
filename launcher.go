@@ -36,7 +36,8 @@ func LaunchWithDebug(appPath string, port int) error {
 }
 
 // gracefulQuitTimeout 是等待应用正常退出的最长时间，超时后才会强制结束。
-const gracefulQuitTimeout = 8 * time.Second
+// 各平台可在自己的 init 中调整（见 quit_windows.go）。
+var gracefulQuitTimeout = 8 * time.Second
 
 // KillProcess 结束目标 App 进程并确保完全退出。
 // macOS 上会先请求应用正常退出（触发保存 / 热退出流程），避免直接 SIGKILL
