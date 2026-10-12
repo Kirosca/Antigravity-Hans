@@ -24,9 +24,20 @@ func monitorStateDir() string {
 	return filepath.Join(os.TempDir(), "antigravity-hans")
 }
 
-// monitorLockPath 按端口区分锁文件，允许同时为 Antigravity 与 Antigravity IDE 各跑一个监视器
+// monitorLockPath 按应用区分锁文件：既能同时为 Antigravity 与 Antigravity IDE 各跑一个监视器，
+// 又不能以端口为键——首选端口被占用时运行期会改用备用端口。
 func monitorLockPath(cfg AppConfig) string {
-	return filepath.Join(monitorStateDir(), fmt.Sprintf("monitor-%d.pid", cfg.Port))
+	return filepath.Join(monitorStateDir(), "monitor-"+appSlug(cfg)+".pid")
+}
+
+// appSlug 把应用名转换成稳定的文件名片段
+func appSlug(cfg AppConfig) string {
+	slug := strings.ToLower(strings.TrimSpace(cfg.Name))
+	slug = strings.NewReplacer(" ", "-", "/", "-", "\\", "-", "..", "-").Replace(slug)
+	if slug == "" {
+		return "app"
+	}
+	return slug
 }
 
 // monitorTargets 根据 --app / --ide 参数决定目标；未指定时两者都算

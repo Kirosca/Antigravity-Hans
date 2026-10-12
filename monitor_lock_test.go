@@ -45,10 +45,18 @@ func TestAcquireMonitorLockOverridesStalePID(t *testing.T) {
 	}
 }
 
-func TestMonitorLockPathIsPerPort(t *testing.T) {
+func TestMonitorLockPathIsPerApp(t *testing.T) {
 	monitorStateDirOverride = t.TempDir()
 	defer func() { monitorStateDirOverride = "" }()
+
 	if monitorLockPath(AppNormal) == monitorLockPath(AppIDE) {
 		t.Fatal("两个应用应使用不同的锁文件，以便同时汉化")
+	}
+	if monitorLockPath(AppNormal) != monitorLockPath(AppConfig{Name: "Antigravity", Port: 58999}) {
+		t.Fatal("锁文件不应随端口变化（运行期可能改用备用端口）")
+	}
+	want := filepath.Join(monitorStateDirOverride, "monitor-antigravity-ide.pid")
+	if got := monitorLockPath(AppIDE); got != want {
+		t.Fatalf("锁文件命名不符合预期: %s", got)
 	}
 }

@@ -27,7 +27,9 @@ func getBanner() string {
 
 func main() {
 	args := os.Args[1:]
-	if containsArg(args, "--nogui") {
+	// --nogui（快捷方式 / 后台启动）时控制台不可见，必须禁止一切等待标准输入的交互
+	interactive := !containsArg(args, "--nogui")
+	if !interactive {
 		HideConsole()
 	}
 
@@ -82,10 +84,10 @@ func main() {
 
 		// 动态汉化参数
 		if isIDE {
-			Run(AppIDE, overlaySource)
+			Run(AppIDE, overlaySource, interactive)
 			return
 		} else if isApp {
-			Run(AppNormal, overlaySource)
+			Run(AppNormal, overlaySource, interactive)
 			return
 		}
 
@@ -135,11 +137,11 @@ func runMainMenu(overlaySource string) {
 		switch choice {
 		case "1":
 			fmt.Println("\n正在启动 Antigravity 动态汉化...")
-			Run(AppNormal, overlaySource)
+			Run(AppNormal, overlaySource, true)
 			pressEnterToContinue(reader)
 		case "2":
 			fmt.Println("\n正在启动 Antigravity IDE 动态汉化...")
-			Run(AppIDE, overlaySource)
+			Run(AppIDE, overlaySource, true)
 			pressEnterToContinue(reader)
 		case "3":
 			runPatchMenu(overlaySource)
