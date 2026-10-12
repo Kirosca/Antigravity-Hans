@@ -40,11 +40,17 @@ func main() {
 		os.Exit(0)
 	}()
 
-	// 加载汉化 JS
-	overlaySource := LoadOverlaySource()
+	// 加载汉化 JS（可执行文件同目录的外部脚本需先通过完整性校验）
+	overlaySource := LoadOverlaySource(containsArg(args, "--trust-external-overlay"))
 
 	// 命令行参数模式（非交互）
 	if len(args) > 0 {
+		// 结束由本工具启动的汉化监视器
+		if containsArg(args, "--stop") {
+			stopMonitors(monitorTargets(args))
+			return
+		}
+
 		// 静态补丁参数
 		if containsArg(args, "--patch") || containsArg(args, "-patch") {
 			runPatchMenu(overlaySource)
@@ -91,6 +97,8 @@ func main() {
 		fmt.Println("  antigravity-hans --shortcut        # 生成两者的中文快捷方式/包装 App")
 		fmt.Println("  antigravity-hans --shortcut --app  # 生成 Antigravity 中文快捷方式")
 		fmt.Println("  antigravity-hans --shortcut --ide  # 生成 Antigravity IDE 中文快捷方式")
+		fmt.Println("  antigravity-hans --stop            # 结束由本工具启动的汉化监视器")
+		fmt.Println("  antigravity-hans --trust-external-overlay  # 跳过校验，强制加载同目录外部汉化脚本")
 		return
 	}
 

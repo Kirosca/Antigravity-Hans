@@ -90,9 +90,13 @@ func CreateChineseShortcut(cfg AppConfig) error {
 	if strings.Contains(strings.ToLower(cfg.Name), "ide") {
 		arg = "--ide"
 	}
+	// 监视进程的日志落到 ~/Library/Logs，便于排查“没有汉化”这类静默失败
 	launcherContent := fmt.Sprintf(`#!/bin/bash
-# 启动后台汉化监视进程
-nohup "%s" %s --nogui > /dev/null 2>&1 &
+# 启动后台汉化监视进程，日志写入 ~/Library/Logs/antigravity-hans.log
+LOG_DIR="$HOME/Library/Logs"
+LOG_FILE="$LOG_DIR/antigravity-hans.log"
+mkdir -p "$LOG_DIR"
+nohup "%s" %s --nogui >> "$LOG_FILE" 2>&1 &
 # 启动原版应用
 open "%s"
 `, selfExeAbs, arg, originalAppPath)
