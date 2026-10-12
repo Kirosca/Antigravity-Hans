@@ -124,6 +124,38 @@
     ['Sidebar after conversations are regrouped by workspace', '按工作区分组后的对话侧边栏'],
     ['URLs the agent can perform actions on via the browser.', '智能体可以通过浏览器执行操作的 URL。'],
     ['Configure default behaviors, skills, and MCP servers.', '配置默认行为、技能和 MCP 服务器。'],
+    ['Controls the actions the agent can take.', '控制智能体可以执行的操作。'],
+    ['Modify permissions for file, terminal, and MCP tools.', '修改文件、终端和 MCP 工具的权限。'],
+    ['Modify permissions for 文件, terminal, and MCP tools.', '修改文件、终端和 MCP 工具的权限。'],
+    ['Whether the agent asks you to review its documents.', '智能体是否请求您审核其生成的文档。'],
+    ['Type / and select plan to have the agent generate a plan.', '输入 / 并选择 plan 让智能体生成计划。'],
+    ['Type / and select plan to have the agent generate a plan', '输入 / 并选择 plan 让智能体生成计划'],
+    ['to have the agent generate a plan.', '让智能体生成计划。'],
+    ['to have the agent generate a plan', '让智能体生成计划'],
+    ['and select plan', '并选择 plan'],
+    ['Scan the code to open this device in Remote Control, or', '扫描二维码以在远程控制中打开此设备，或'],
+    ['Scan the code to open this device in Remote Control, or ', '扫描二维码以在远程控制中打开此设备，或 '],
+    ['扫描二维码以在此设备上打开 Remote Control, or', '扫描二维码以在远程控制中打开此设备，或'],
+    ['扫描二维码以在此设备上打开 Remote Control, or ', '扫描二维码以在远程控制中打开此设备，或 '],
+    ['扫描二维码以此设备上打开 Remote Control, or', '扫描二维码以在远程控制中打开此设备，或'],
+    ['扫描二维码以此设备上打开 Remote Control, or ', '扫描二维码以在远程控制中打开此设备，或 '],
+    ['Scan the code to open this device in', '扫描二维码以在远程控制中打开此设备'],
+    ['Continue your work from another device with Remote Control. Scan the QR code or open the link below.', '通过远程控制在其他设备上继续工作。请扫描二维码或打开下方链接。'],
+    ['Remote Control isn\'t active on this instance. Enable it in', '当前实例未启用远程控制。请在以下位置启用：'],
+    ['Open in Remote Control', '在远程控制中打开'],
+    ['Remote Control Issue', '远程控制问题'],
+    [', or copy link.', '，或复制链接。'],
+    [', or copy link', '，或复制链接'],
+    ['or copy link', '或复制链接'],
+    ['and select', '并选择'],
+    [', or', '，或'],
+    ['Every command requires approval.', '每条命令都需要审核。'],
+    ['Ask before sensitive operations.', '执行敏感操作前先询问。'],
+    ['Run all commands without restrictions.', '无限制运行所有命令。'],
+    ['all commands without restrictions.', '无限制运行所有命令。'],
+    ['all commands without restrictions', '无限制运行所有命令'],
+    ['to be installed.', '已安装。'],
+    ['to be installed', '已安装'],
     ['Configure external tools via Model Context Protocol.', '配置通过 Model Context Protocol 使用的外部工具。'],
     ['Keyboard shortcuts for quick navigation and control.', '用于快速导航和控制的键盘快捷键。'],
     ['You currently don\\\'t have any MCP Servers installed.', '您当前还没有安装任何 MCP 服务器。'],
@@ -156,6 +188,8 @@
     ['No customizations found for this workspace.', '此工作区没有找到自定义内容。'],
     ['to back up your data and run the migration.', '备份数据并运行迁移。'],
     ['Work with local agents from another device.', '从其他设备连接并使用本地智能体。'],
+    ['Scan the code to open this device in Remote Control, or copy link.', '扫描二维码以在远程控制中打开此设备，或复制链接。'],
+    ['Exploring files, running commands, editing artifact', '正在探索文件、运行命令、编辑产物'],
     ['Antigravity would like to use the browser.', 'Antigravity 想要使用浏览器。'],
     ['Confirmation required to execute this step', '执行此步骤需要确认'],
     ['Folder no longer exists or is unavailable.', '文件夹不再存在或不可用。'],
@@ -228,8 +262,12 @@
     ['Click to copy full command', '点击复制完整命令'],
     ['Copy conversation markdown', '复制对话 Markdown'],
     ['Copy full URL to clipboard', '复制完整 URL 到剪贴板'],
+    ['File path breadcrumbs', '文件路径导航面包屑'],
     ['Search MCP servers by name', '按名称搜索 MCP 服务器'],
     ['Archive this conversation', '归档此对话'],
+    ['Archive conversation', '归档对话'],
+    ['Pin this conversation', '固定此对话'],
+    ['Pin conversation', '固定对话'],
     ['Browser User Profile Path', '浏览器用户资料路径'],
     ['Build With Google Plugins', '使用 Google 插件构建'],
     ['Built with Google Plugins', '使用 Google 插件构建'],
@@ -280,6 +318,7 @@
     ['Model Context Protocol', '模型上下文协议 (MCP)'],
     ['My Custom Gemini Model', '我的自定义 Gemini 模型'],
     ['No more older messages', '没有更早的消息了'],
+    ['Load older messages', '加载更早的消息'],
     ['Open Browser (Preview)', '打开浏览器 (预览)'],
     ['Opening URL in Browser', '正在浏览器中打开 URL'],
     ['quota and credits data', '额度和积分数据'],
@@ -399,6 +438,13 @@
     ['Enable Demo Mode', '启用演示模式'],
     ['Enable Telemetry', '启用遥测'],
     ['File Permissions', '文件权限'],
+    ['Global Permissions', '全局权限'],
+    ['Global permissions', '全局权限'],
+    ['Global Permission', '全局权限'],
+    ['global permissions', '全局权限'],
+    ['Inherits your Global Permissions when working in this project.', '在此项目中工作时继承您的全局权限。'],
+    ['Also includes Global Permissions when working in this project.', '在此项目中工作时还包括“全局权限”。'],
+    ['Automations do not inherit Global Permissions.', '自动化任务不继承全局权限。'],
     ['General Feedback', '一般反馈'],
     ['Keep In Menu Bar', '保留在菜单栏'],
     ['Marketing Emails', '营销邮件'],
@@ -466,6 +512,26 @@
     ['Request Review', '请求审核'],
     ['Require Review', '需要审核'],
     ['Review Changes', '审核更改'],
+    ['Scroll to Bottom', '滚动到底部'],
+    ['Scroll to bottom', '滚动到底部'],
+    ['Undo to this point', '撤销到此处'],
+    ['Stop execution', '停止执行'],
+    ['Fold code block', '折叠代码块'],
+    ['Add inline comment', '添加行内批注'],
+    ['inline comment', '行内批注'],
+    ['Inline Widget', '内联组件'],
+    ['Overview tab', '概览标签页'],
+    ['Review tab', '审核标签页'],
+    ['Terminal tab', '终端标签页'],
+    ['Maximize Pane', '最大化窗格'],
+    ['File Viewer', '文件查看器'],
+    ['breadcrumbs', '路径导航'],
+    ['Plan Review Policy', '计划审核策略'],
+    ['Permission Preset', '权限预设'],
+    ['Permission preset', '权限预设'],
+    ['Tool Permissions', '工具权限'],
+    ['Tool permissions', '工具权限'],
+    ['Tool Permission', '工具权限'],
     ['Select Project', '选择项目'],
     ['Toggle Sidebar', '切换侧边栏'],
     ['Typeahead menu', '自动补全菜单'],
@@ -542,8 +608,10 @@
     ['New Project', '新建项目'],
     ['No Subtitle', '无副标题'],
     ['Open Folder', '打开文件夹'],
+    ['Open IDE', '打开 IDE'],
     ['or join the', '或加入'],
     ['Permissions', '权限'],
+    ['Permission', '权限'],
     ['Quick Start', '快速开始'],
     ['Recommended', '推荐'],
     ['Suggestions', '建议'],
@@ -556,6 +624,9 @@
     ['Always Ask', '始终询问'],
     ['Appearance', '外观'],
     ['Automation', '自动化'],
+    ['Automations', '自动化'],
+    ['Environment', '环境'],
+    ['More options', '更多选项'],
     ['Avatar URL', '头像 URL'],
     ['Background', '背景色'],
     ['Bug Report', '错误报告'],
@@ -563,6 +634,8 @@
     ['Dark Theme', '深色主题'],
     ['Date Added', '添加日期'],
     ['Deprecated', '已弃用'],
+    ['Device Name', '设备名称'],
+    ['App version', '应用版本'],
     ['Edit Model', '编辑模型'],
     ['File Reads', '文件读取'],
     ['Foreground', '前景色'],
@@ -605,6 +678,7 @@
     ['[MODIFY]', '[修改]'],
     ['Advanced', '高级'],
     ['Archived', '已归档'],
+    ['Artifacts', '产物列表'],
     ['Bot Name', '机器人名称'],
     ['Disabled', '已禁用'],
     ['Download', '下载'],
@@ -618,12 +692,15 @@
     ['Open URL', '打开 URL'],
     ['Planning', '规划'],
     ['Projects', '项目'],
+    ['Modified in', '已在'],
     ['Searched', '已搜索'],
     ['searches', '搜索'],
     ['Searches', '搜索'],
     ['See less', '收起'],
     ['Settings', '设置'],
     ['Show all', '显示全部'],
+    ['Show All', '显示全部'],
+    ['copy link', '复制链接'],
     ['Sign Out', '退出登录'],
     ['Terminal', '终端'],
     ['Worktree', '工作树'],
@@ -673,6 +750,8 @@
     ['Narrow', '窄'],
     ['Picker', '选择器'],
     ['Pinned', '已固定'],
+    ['Archive', '归档'],
+    ['Viewer', '查看器'],
     ['Preset', '预设'],
     ['Recent', '最近使用'],
     ['Rename', '重命名'],
@@ -686,6 +765,7 @@
     ['Submit', '提交'],
     ['System', '系统'],
     ['Value:', '当前值：'],
+    ['Version', '版本'],
     ['Window', '窗口'],
     ['After', '分组后'],
     ['Close', '关闭'],
@@ -714,28 +794,38 @@
     ['None', '无'],
     ['Open', '打开'],
     ['Plan', '套餐计划'],
+    ['Tool', '工具'],
+    ['Type', '输入'],
     ['Quit', '退出'],
     ['Read', '读取'],
     ['Skip', '跳过'],
-    ['Slow', '慢'],
+    ['Pane', '窗格'],
+    ['More', '更多'],
     ['View', '视图'],
     ['Wide', '宽'],
     ['Add', '添加'],
     ['App', '应用'],
     ['Low', '低'],
+    ['Pin', '固定'],
     ['now', '刚刚'],
     ['Now', '当前'],
     ['Off', '关闭'],
     ['Ran', '已运行'],
     ['Run', '运行'],
     ['Use', '使用'],
-    ['Go', '转到'],
+    ['Go to', '转到'],
+    ['Go To', '转到'],
     ['On', '开启'],
   ]);
 
   // 根据长度倒序排序
   const sortedPhrases = Array.from(phrases.entries()).sort((a, b) => b[0].length - a[0].length);
 
+  // 小写词汇索引，便于精准匹配大小写差异
+  const lowerPhrases = new Map();
+  for (const [k, v] of phrases.entries()) {
+    lowerPhrases.set(k.toLowerCase(), v);
+  }
 
   // 词条正则缓存
   const regexCache = new Map();
@@ -749,6 +839,88 @@
       regexCache.set(source, cached);
     }
     return cached;
+  }
+
+  // 精准独立词汇匹配（支持快捷键与末尾标点），防止短词在长句中误伤
+  function matchExactPhrase(trimmed) {
+    if (phrases.has(trimmed)) return phrases.get(trimmed);
+    const low = trimmed.toLowerCase();
+    if (lowerPhrases.has(low)) return lowerPhrases.get(low);
+
+    // 快捷键: 如 Save (Ctrl+S) 或 Save (⌘S)
+    const scMatch = trimmed.match(/^(.+?)\s*\((Ctrl|Cmd|Alt|Shift|⌘|⌥|⇧|⌃)\+?([^)]*)\)$/i);
+    if (scMatch) {
+      const prefix = scMatch[1].trim();
+      if (phrases.has(prefix)) return phrases.get(prefix) + ` (${scMatch[2]}${scMatch[3] ? '+' + scMatch[3] : ''})`;
+      if (lowerPhrases.has(prefix.toLowerCase())) return lowerPhrases.get(prefix.toLowerCase()) + ` (${scMatch[2]}${scMatch[3] ? '+' + scMatch[3] : ''})`;
+    }
+    // 常见标点：冒号、省略号、问号、感叹号
+    const puncMatch = trimmed.match(/^(.+?)([:：\?？!！…]+|\.{3,})$/);
+    if (puncMatch) {
+      const prefix = puncMatch[1].trim();
+      if (phrases.has(prefix)) return phrases.get(prefix) + puncMatch[2];
+      if (lowerPhrases.has(prefix.toLowerCase())) return lowerPhrases.get(prefix.toLowerCase()) + puncMatch[2];
+    }
+    return null;
+  }
+
+  // 智能体任务动态状态栏（例如：Exploring files, running commands ⌵）
+  function translateAgentProgress(str) {
+    if (!str) return null;
+    const clean = str.trim().replace(/\s*[⌵▼▾ˇ⌄\u2304\u25be\u25bc\u25bd]\s*$/, '').trim();
+    const verbMap = {
+      exploring: '正在探索', explored: '已探索',
+      editing: '正在编辑', edited: '已编辑',
+      running: '正在运行', ran: '已运行',
+      searching: '正在搜索', searched: '已搜索',
+      reading: '正在读取', read: '已读取'
+    };
+    const nounMap = {
+      file: '文件', files: '文件',
+      folder: '文件夹', folders: '文件夹',
+      command: '命令', commands: '命令',
+      artifact: '产物', artifacts: '产物',
+      search: '搜索', searches: '搜索',
+      task: '任务', tasks: '任务',
+      page: '网页', pages: '网页',
+      image: '图片', images: '图片',
+      action: '操作', actions: '操作'
+    };
+    const unitMap = {
+      file: '个', files: '个',
+      folder: '个', folders: '个',
+      command: '个', commands: '个',
+      artifact: '个', artifacts: '个',
+      search: '次', searches: '次',
+      task: '个', tasks: '个',
+      page: '个', pages: '个',
+      image: '张', images: '张',
+      action: '项', actions: '项'
+    };
+
+    const partRegex = /^(exploring|explored|editing|edited|running|ran|searching|searched|reading|read)\s*(?:(\d+)\s+)?(files?|folders?|commands?|artifacts?|searches?|tasks?|pages?|images?|actions?)$/i;
+
+    const parts = clean.split(/\s*,\s*/);
+    if (parts.length === 0) return null;
+
+    const translatedParts = [];
+    for (const part of parts) {
+      const m = part.trim().match(partRegex);
+      if (!m) return null;
+      const v = verbMap[m[1].toLowerCase()] || m[1];
+      const count = m[2];
+      const nounKey = m[3].toLowerCase();
+      const n = nounMap[nounKey] || m[3];
+      const unit = unitMap[nounKey] || '个';
+      if (count !== undefined) {
+        translatedParts.push(`${v} ${count} ${unit}${n}`);
+      } else {
+        translatedParts.push(`${v}${n}`);
+      }
+    }
+
+    const trailingSuffix = str.endsWith(clean) ? '' : str.slice(str.indexOf(clean) + clean.length);
+    return translatedParts.join('，') + trailingSuffix;
   }
 
   function formatRelativeTime(str) {
@@ -804,6 +976,10 @@
     [/Worked for (\d+)\s*s\b/gi, '已工作 $1 秒'],
     [/Worked for (\d+)\s*m\b/gi, '已工作 $1 分钟'],
     [/Worked for (\d+)\s*h\b/gi, '已工作 $1 小时'],
+    [/Thought for (\d+)\s*s\b/gi, '已思考 $1 秒'],
+    [/Thought for (\d+)\s*m\b/gi, '已思考 $1 分钟'],
+    [/Thought for (\d+)\s*h\b/gi, '已思考 $1 小时'],
+    [/Fold lines (\d+)-(\d+)/g, '折叠第 $1-$2 行'],
     [/(\d+)\s*minutes?\s*ago\b/gi, '$1 分钟前'],
     [/(\d+)\s*hours?\s*ago\b/gi, '$1 小时前'],
     [/(\d+)\s*days?\s*ago\b/gi, '$1 天前'],
@@ -823,6 +999,8 @@
     [/(\d+(?:\.\d+)?)% of the customization budget is available\./g, '自定义预算还剩 $1%。'],
     [/(\d+)\s*agents running/g, '$1 个代理正在运行'],
     [/See all \((\d+)\)/g, '查看全部 ($1)'],
+    [/Modified in (\d+)\s*(?:projects?|项目)/gi, '已在 $1 个项目中自定义'],
+    [/^(\d+)\s*projects?$/i, '$1 个项目'],
     [/Show (\d+)\s*breakdowns?/gi, '显示 $1 个明细'],
     [/No more older messages, showing (\d+) of (\d+)/g, '没有更早的消息了，显示 $1 / $2'],
     [/showing (\d+) of (\d+)/gi, '显示 $1 / $2'],
@@ -856,6 +1034,7 @@
     [/^Allow (.+)$/g, '允许 $1'],
     // 动态选项与操作
     [/^(.+)\s+options$/g, '$1 选项'],
+    [/(\b(?:Overview|Review|Terminal|Console|Output|Problems|Debug)\b|[^\x00-\xff]+)\s+tab\b/gi, '$1 标签页'],
     [/(?:刷新|Refresh)\s*MCP\s*servers?/gi, '刷新 MCP 服务器'],
     [/\btokens\)/gi, 'Token)'],
     // 量词与时间单位补齐
@@ -874,22 +1053,37 @@
     return value.replace(pattern, target);
   }
 
-  // 核心翻译流水线：优先纯静态最长匹配，再处理动态变量，最后后置微调
+  // 核心翻译流水线：精准完全匹配优先 -> 动态进度栏 -> 长句及复合短语子串 -> 动态变量规则
   function translate(value) {
     if (!value || !/[A-Za-z]/.test(value)) return value;
-    let next = value;
+    const trimmed = value.trim();
 
-    // 1. 优先使用纯静态精准词典（最长匹配优先）
-    for (const [source, target] of sortedPhrases) {
-      next = replacePhrase(next, source, target);
+    // 1. 精准完全匹配（独立按钮、菜单项、短词、快捷键与标点，彻底杜绝短词在未知长句中途破坏）
+    const exact = matchExactPhrase(trimmed);
+    if (exact) {
+      return value.replace(trimmed, exact);
     }
 
-    // 2. 处理动态变量与模板规则
+    // 2. 动态任务进度栏解析（例如 "Exploring files, running commands ⌵"）
+    const progress = translateAgentProgress(value);
+    if (progress) {
+      return progress;
+    }
+
+    // 3. 长句及复合短语子串匹配（仅长度 > 15 的词条允许子串替换，短词禁止中途单点替换）
+    let next = value;
+    for (const [source, target] of sortedPhrases) {
+      if (source.length > 15) {
+        next = replacePhrase(next, source, target);
+      }
+    }
+
+    // 4. 处理动态变量与模板规则
     for (const [pattern, target] of dynamicPatterns) {
       next = next.replace(pattern, target);
     }
 
-    // 3. 后置微调与插值收尾
+    // 5. 后置微调与插值收尾
     for (const [pattern, target] of patternsPost) {
       next = next.replace(pattern, target);
     }
@@ -919,8 +1113,13 @@
       }
     }
 
-    // 跳过会话历史
-    const historyItem = element.closest('.past-conversations, .conversation-list, .history-list, .conversations-list, [data-testid="history-list"], [data-testid="past-conversations"], .conversation-item, .convo-item, .history-item, [class*="history-item"], [class*="convo-item"]');
+    // 跳过会话标题与面包屑（用户或模型生成的自定义会话名）
+    if (element.closest('[data-testid="breadcrumb-segment"], nav [class*="breadcrumb"]')) {
+      return true;
+    }
+
+    // 跳过侧边栏会话历史列表中的会话名称
+    const historyItem = element.closest('[data-testid="conversation-row-sidebar"], [data-cascade-id], .past-conversations, .conversation-list, .history-list, .conversations-list, [data-testid="history-list"], [data-testid="past-conversations"], .conversation-item, .convo-item, .history-item, [class*="history-item"], [class*="convo-item"]');
     if (historyItem) {
       const isActionBtn = element.closest('button[aria-label], button[title], [class*="delete"], [class*="pin"], [class*="archive"]');
       if (!isActionBtn) return true;
