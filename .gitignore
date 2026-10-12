@@ -2,5 +2,8 @@
 dist/
 *.exe
 
-# 内嵌的 overlay.js 副本（由 build.sh 自动同步，无需提交）
-antigravity-hans-overlay.js
+# 直接在仓库根目录 go build 产出的可执行文件
+/antigravity-hans
+
+# 注意：antigravity-hans-overlay.js 是词库源文件，同时被 overlay.go 的 go:embed 内嵌，
+# 必须提交到版本库（build.sh 并不会同步它）。
