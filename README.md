@@ -2,7 +2,9 @@
 
 专为 **Google Antigravity** 及 **Antigravity IDE** 开发的中文汉化工具。
 
-> **适配版本**： **Antigravity `2.10.0`** 与 **Antigravity IDE `2.5.5`** 。
+> **适配版本**：**Antigravity `2.22.0`** 与 **Antigravity IDE `2.5.5`**。
+>
+> 动态汉化基于 CDP 注入，不依赖应用内部结构，版本升级一般不受影响；静态补丁与 IDE 内部目录结构强相关，IDE 升级后可能需要重新适配。
 
 ---
 
@@ -116,7 +118,38 @@ go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
 ---
 
+## 更新说明
+
+### v0.5.0
+
+**安全**
+
+- 不再传入 `--remote-allow-origins=*`：CDP 调试端口本身无鉴权，该参数会关闭浏览器针对 DNS rebinding 的防护；本工具的 WebSocket 客户端默认不发送 Origin 头，并不需要它。
+- 外部汉化脚本增加完整性校验（普通文件 / 非符号链接 / 不同组其他用户可写 / 体积上限 / 含汉化标记），不通过则自动退回编译期内嵌版本。
+- 启动路径校验：注册表读到的候选路径必须与目标可执行文件同名，且启动前再次校验（存在 / 普通文件 / 非符号链接）。
+
+**健壮性**
+
+- 修复断线重连时递归调用导致的 Watchdog goroutine 泄漏，改为就地退避重连（1.5s → 5s，最长 3 分钟）。
+- macOS 与 Windows 均改为先请求应用**正常退出**，超时才强制结束，避免丢失正在进行的会话。
+- 调试端口自动避让占用并支持复用；`--nogui` 下不再等待标准输入（原先多安装实例会永久挂起）。
+- 新增监视器单实例锁与 `--stop`；macOS 快捷方式的监视进程日志落盘到 `~/Library/Logs/antigravity-hans.log`。
+
+**词库与质量**
+
+- 修复 11 条因转义错误而永远匹配不到的词条，删除 5 条冗余条目，修正沙盒确认框漏译（811 → 806 条）。
+- 新增词库体检脚本 `tools/lint-overlay.mjs`，并接入 CI。
+- Go 工具链升级到 1.26.9（1.25 已停止支持），新增 CI 质量门禁：gofmt / go vet / go test / 词库 lint / govulncheck。
+- 单元测试由 3 个增加到 16 个。
+
+### v0.4.4
+
+- 词库引入短词精准匹配与智能体进度解析，完善全局权限与远程控制相关汉化。
+
+---
+
 ## 致谢
 
-- 汉化词库参考：[antigravity-chinese](https://github.com/kdczyz/antigravity-chinese)
+- 本项目 fork 自 [yuexps/Antigravity-Hans](https://github.com/yuexps/Antigravity-Hans)，感谢原作者与所有贡献者。
+- 汉化词库参考：[kdczyz/antigravity-chinese](https://github.com/kdczyz/antigravity-chinese)
 
