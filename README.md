@@ -2,7 +2,9 @@
 
 专为 **Google Antigravity** 及 **Antigravity IDE** 开发的中文汉化工具。
 
-> **适配版本**： **Antigravity `2.10.0`** 与 **Antigravity IDE `2.5.5`** 。
+> **适配版本**：**Antigravity `2.22.0`** 与 **Antigravity IDE `2.5.5`**。
+>
+> 动态汉化基于 CDP 注入，不依赖应用内部结构，版本升级一般不受影响；静态补丁与 IDE 内部目录结构强相关，IDE 升级后可能需要重新适配。
 
 ---
 
