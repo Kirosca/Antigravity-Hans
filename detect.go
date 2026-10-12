@@ -81,11 +81,12 @@ func DetectApp(cfg AppConfig) DetectedApp {
 		}
 	}
 
-	// 若预设路径无结果，查询注册表（Windows）
+	// 若预设路径无结果，查询注册表（Windows）。
+	// 注册表内容不受本工具控制，因此只接受文件名与目标 exe 一致、且确实是普通文件的路径。
 	if len(allFound) == 0 {
 		regPaths := GetPathsFromRegistry(cfg.Name, cfg.Exe)
 		for _, p := range regPaths {
-			if !containsStr(allFound, p) {
+			if !containsStr(allFound, p) && isExpectedExecutable(p, cfg) {
 				allFound = append(allFound, p)
 			}
 		}
@@ -97,6 +98,20 @@ func DetectApp(cfg AppConfig) DetectedApp {
 	}
 
 	return result
+}
+
+// isExpectedExecutable 校验待启动路径确实是目标应用的可执行文件。
+// 路径可能来自注册表等外部来源，因此要求：存在、是普通文件（非目录或符号链接）、
+// 且文件名与配置中的可执行文件名一致。
+func isExpectedExecutable(path string, cfg AppConfig) bool {
+	if path == "" || cfg.Exe == "" {
+		return false
+	}
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() {
+		return false
+	}
+	return strings.EqualFold(filepath.Base(path), cfg.Exe)
 }
 
 // isMacMainExe 判断 macOS 上是否是主进程可执行文件路径

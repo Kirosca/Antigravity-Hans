@@ -380,6 +380,12 @@ func Run(cfg AppConfig, overlaySource string, interactive bool) {
 		}
 	}
 
+	// 启动前最后一道校验：路径必须确实是目标应用的可执行文件
+	if !isExpectedExecutable(targetPath, cfg) {
+		fmt.Printf("[错误] 启动路径校验未通过（期望可执行文件 %s）: %s\n", cfg.Exe, targetPath)
+		return
+	}
+
 	// 启动并监视
 	fmt.Printf("正在以调试模式启动 %s: %s (调试端口 %d) ...\n", app.Name, targetPath, app.Port)
 	if err := LaunchWithDebug(targetPath, app.Port); err != nil {
