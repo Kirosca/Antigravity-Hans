@@ -10,13 +10,13 @@ import (
 
 // DetectedApp 进程检测结果
 type DetectedApp struct {
-	Name         string
-	Exe          string
-	Port         int
-	Running      bool
-	Path         string   // 正在运行实例的可执行文件路径（如有）
-	PIDs         []int32  // 所有匹配进程的 PID
-	AllPaths     []string // 所有已找到的安装路径
+	Name     string
+	Exe      string
+	Port     int
+	Running  bool
+	Path     string   // 正在运行实例的可执行文件路径（如有）
+	PIDs     []int32  // 所有匹配进程的 PID
+	AllPaths []string // 所有已找到的安装路径
 }
 
 // isProcessMatch 判断进程是否与目标 App 匹配
