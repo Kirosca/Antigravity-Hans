@@ -307,8 +307,10 @@ func WaitForPort(port int, maxWaitMs int) bool {
 	return false
 }
 
-// Run 启动并监视目标应用
-func Run(cfg AppConfig, overlaySource string) {
+// Run 启动并监视目标应用。
+// interactive 为 false 时（--nogui / 后台启动）不会询问安装实例，
+// 否则在控制台被隐藏的快捷方式下会永久挂起。
+func Run(cfg AppConfig, overlaySource string, interactive bool) {
 	// 单实例保护：重复双击快捷方式会让多个监视器叠加注入
 	release, ok := acquireMonitorLock(cfg)
 	if !ok {
@@ -319,21 +321,32 @@ func Run(cfg AppConfig, overlaySource string) {
 	injectedSet := make(map[string]bool)
 	var mu sync.Mutex
 
-	app := DetectApp(cfg)
-
-	// 已开启调试端口直接进入监视
-	targets := CheckPort(app.Port)
-	if len(targets) > 0 {
-		fmt.Printf("检测到 %s 调试端口已开启，直接进入监视模式...\n", app.Name)
+	// 候选端口里已有调试端点（多半是上一次由本工具启动、仍在运行的实例）：
+	// 直接复用该端口进入监视，不要把它杀掉重启
+	if port, found := findCDPPort(cfg.Port); found {
+		cfg.Port = port
+		fmt.Printf("检测到 %s 调试端口 %d 已开启，直接进入监视模式...\n", cfg.Name, port)
 		Watch(cfg, overlaySource, injectedSet, &mu)
 		return
 	}
+
+	app := DetectApp(cfg)
 
 	// 进程未开启调试端口则重启
 	if app.Running {
 		fmt.Printf("[提示] 检测到 %s 正在运行，但未开启调试端口。正在重新拉起...\n", app.Name)
 		KillProcess(cfg)
 		time.Sleep(1500 * time.Millisecond)
+	}
+
+	// 首选端口落在系统临时端口区间内，可能被别的进程占用，这里挑一个空闲的
+	if port, ok := selectFreePort(cfg.Port); ok {
+		if port != cfg.Port {
+			fmt.Printf("[提示] 首选端口 %d 已被占用，本次改用 %d。\n", cfg.Port, port)
+		}
+		cfg.Port = port
+	} else {
+		fmt.Printf("[警告] 候选端口 %v 均被占用，仍尝试使用 %d。\n", candidatePorts(cfg.Port), cfg.Port)
 	}
 
 	// 确定启动路径
@@ -351,18 +364,24 @@ func Run(cfg AppConfig, overlaySource string) {
 			for i, p := range app.AllPaths {
 				fmt.Printf(" [%d] %s\n", i+1, p)
 			}
-			var choice int
-			fmt.Printf("请选择 (1-%d, 默认 1): ", len(app.AllPaths))
-			fmt.Scan(&choice)
-			if choice < 1 || choice > len(app.AllPaths) {
-				choice = 1
+			if !interactive {
+				// 控制台不可见时绝不能等待输入：直接取第一个实例
+				fmt.Printf("[提示] 非交互模式，自动选择第 1 个安装实例。\n")
+				targetPath = app.AllPaths[0]
+			} else {
+				var choice int
+				fmt.Printf("请选择 (1-%d, 默认 1): ", len(app.AllPaths))
+				fmt.Scan(&choice)
+				if choice < 1 || choice > len(app.AllPaths) {
+					choice = 1
+				}
+				targetPath = app.AllPaths[choice-1]
 			}
-			targetPath = app.AllPaths[choice-1]
 		}
 	}
 
 	// 启动并监视
-	fmt.Printf("正在以调试模式启动 %s: %s ...\n", app.Name, targetPath)
+	fmt.Printf("正在以调试模式启动 %s: %s (调试端口 %d) ...\n", app.Name, targetPath, app.Port)
 	if err := LaunchWithDebug(targetPath, app.Port); err != nil {
 		fmt.Printf("[错误] 启动失败: %v\n", err)
 		return
