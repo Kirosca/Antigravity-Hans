@@ -29,7 +29,7 @@ test('updated overlays replace their observer and use the requested fingerprint'
 });
 
 test('permission targets survive both initial translation and observer reprocessing', () => {
-  const targets = ['/workspace/10 files/30 minutes.txt', "rm -rf '/tmp/10 files'", 'https://example.test/10 files?q=30 minutes', "printf '$& $$ $` $\u0027'", "tool('10 files')\nnext command", '复制中文和10 files'];
+  const targets = ['/workspace/10 files/30 minutes.txt', "rm -rf '/tmp/10 files'", 'https://example.test/10 files?q=30 minutes', "printf '$& $$ $` $\u0027'", "tool('10 files')\nnext command", '复制中文和10 files', 'Last 7 days', 'Last 7 天'];
   for (const target of targets) {
     const inputs = [
       `Requesting permission to running this command outside the sandbox ${target}`,
@@ -70,6 +70,18 @@ test('WSL provisioning translates status while preserving the distro name', () =
     assert.equal(translate(output), output);
   }
   assert.equal(translate('Downloading the Antigravity binary…'), '正在下载 Antigravity 程序…');
+});
+
+test('recent-day filters translate fully and repair partially translated labels', () => {
+  for (const input of ['Last 7 days', 'Last 7 天', 'Last 1 day', 'Last 30 days', ' Last 30 天 ']) {
+    const count = input.match(/\d+/)[0];
+    const expected = input.replace(input.trim(), `最近 ${count} 天`);
+    const output = translate(input);
+    assert.equal(output, expected);
+    assert.equal(translate(output), output, 'observer reprocessing changed a translated time filter');
+  }
+  assert.equal(translate('Last Updated'), '最近更新');
+  assert.equal(translate('Last Prompt'), '上次提示词');
 });
 
 test('attribute mutations inside skipped code/user content are not translated', () => {

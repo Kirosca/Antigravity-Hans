@@ -1,6 +1,6 @@
 (() => {
   if (typeof window === 'undefined') return;
-  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.23.0-20261014-sidebar-menus';
+  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.23.0-20261014-days-filter';
   if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document && window.__antigravityZhPatchFingerprint === fingerprint) return;
   const updating = window.__antigravityZhPatchInstalled === true && window.__observedDocument === document;
   if (typeof window.__antigravityZhPatchCleanup === 'function') window.__antigravityZhPatchCleanup();
@@ -49,6 +49,7 @@
     ['Archived Only', '仅显示已归档'],
     ['Custom Order', '自定义顺序'],
     ['Only Unread', '仅显示未读'],
+    ['Last 7 days', '最近 7 天'],
     ['Sort By', '排序方式'],
     ['Display', '显示'],
     ['Scheduled', '定时任务'],
@@ -1237,6 +1238,10 @@
     if (exact) {
       return value.replace(trimmed, exact);
     }
+
+    // 时间筛选完整翻译，兼容旧词库已经留下的 "Last 7 天" 等半翻译标签。
+    const recentDays = trimmed.match(/^Last\s+(\d+)\s*(?:days?|天)$/i);
+    if (recentDays) return value.replace(trimmed, () => `最近 ${recentDays[1]} 天`);
 
     // 2. 动态任务进度栏解析（例如 "Exploring files, running commands ⌵"）
     const progress = translateAgentProgress(value);
