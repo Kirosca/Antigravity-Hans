@@ -1,6 +1,6 @@
 (() => {
   if (typeof window === 'undefined') return;
-  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.23.0-20261014';
+  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.23.0-20261014-auto-preview';
   if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document && window.__antigravityZhPatchFingerprint === fingerprint) return;
   const updating = window.__antigravityZhPatchInstalled === true && window.__observedDocument === document;
   if (typeof window.__antigravityZhPatchCleanup === 'function') window.__antigravityZhPatchCleanup();
@@ -37,6 +37,7 @@
     ['Run terminal commands with sandbox restrictions.', '在沙盒限制下运行终端命令。'],
     ['Security agent decides if commands run.', '由安全智能体决定是否运行命令。'],
     ['Automatically decide if commands run.', '自动判断是否运行命令。'],
+    ['Auto (Preview)', '自动（预览）'],
     ['Agent always asks for review.', '智能体始终请求审核。'],
     ['Open the agent panel on window reload', '窗口重新加载时打开智能体面板'],
     ['Toggle Between Light/Dark Themes', '切换浅色或深色主题'],
