@@ -22,8 +22,10 @@ func TestAcquireMonitorLockIsExclusive(t *testing.T) {
 	}
 	release()
 
-	if _, ok := acquireMonitorLock(cfg); !ok {
+	if release, ok := acquireMonitorLock(cfg); !ok {
 		t.Fatal("释放后应当可以再次获取锁")
+	} else {
+		t.Cleanup(release)
 	}
 }
 
@@ -40,8 +42,10 @@ func TestAcquireMonitorLockOverridesStalePID(t *testing.T) {
 	if err := os.WriteFile(path, []byte(strconv.Itoa(1<<30)), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := acquireMonitorLock(cfg); !ok {
+	if release, ok := acquireMonitorLock(cfg); !ok {
 		t.Fatal("残留锁文件不应阻断启动")
+	} else {
+		t.Cleanup(release)
 	}
 }
 

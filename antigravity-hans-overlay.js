@@ -1,10 +1,158 @@
 (() => {
   if (typeof window === 'undefined') return;
-  if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document) return;
+  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.23.0-20261014';
+  if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document && window.__antigravityZhPatchFingerprint === fingerprint) return;
+  const updating = window.__antigravityZhPatchInstalled === true && window.__observedDocument === document;
+  if (typeof window.__antigravityZhPatchCleanup === 'function') window.__antigravityZhPatchCleanup();
   window.__antigravityZhPatchInstalled = true;
   window.__observedDocument = document;
+  window.__antigravityZhPatchFingerprint = fingerprint;
+  let observer;
+  let cancelled = false;
+  const pendingTimers = new Set();
+  window.__antigravityZhPatchCleanup = () => {
+    cancelled = true;
+    observer?.disconnect();
+    window.removeEventListener('DOMContentLoaded', run);
+    for (const timer of pendingTimers) clearTimeout(timer);
+    pendingTimers.clear();
+  };
 
   const phrases = new Map([
+    // 普通版 2.23.0：来自本机实际加载的 main.js，未新增 IDE 专属词条。
+    ['A permanent Chief of Staff conversation in the sidebar that manages your other conversations: delegate tasks, check status, and read results from one place.', '在侧边栏保留一个统筹助手对话，集中管理其他对话：分派任务、检查状态并查看结果。'],
+    ['Agent never asks for review. This maximizes the autonomy of the Agent, but also has the highest risk of the Agent operating over unsafe or injected Artifact content.', '智能体从不请求审核。这会最大程度提高智能体的自主性，但也具有因不安全或被注入恶意内容的产物而执行操作的最高风险。'],
+    ["Specifies the agent's behavior when asking for review on artifacts, which are documents it creates to enable a richer conversation experience.", '指定智能体请求审核产物时的行为。产物是智能体创建的文档，用于提供更丰富的对话体验。'],
+    ['Give the agent awareness of lint errors created by its edits so it can fix them without explicit prompting.', '让智能体感知编辑引入的 Lint 错误，以便无需额外提示即可修复。'],
+    ['Automatically expand the Changes Overview toolbar when the agent finishes generating a response.', '智能体完成回复生成时，自动展开更改概览工具栏。'],
+    ['The agent asks for permission before executing commands matched by a deny list entry.', '智能体在执行匹配拒绝列表条目的命令前，会先请求权限。'],
+    ['The agent auto-executes commands matched by an allow list entry.', '智能体会自动执行匹配允许列表条目的命令。'],
+    ['Show browser notifications when your action is needed or execution finishes.', '需要你操作或执行结束时，显示浏览器通知。'],
+    ['Play a sound when the agent finishes generating a response.', '智能体完成回复生成时播放提示音。'],
+    ['Let the agent access past conversations to inform its responses.', '允许智能体参考历史对话来生成回复。'],
+    ['Open files in the background if the agent creates or edits them', '智能体创建或编辑文件时，在后台打开这些文件'],
+    ['Display and preserve intermediate thinking steps.', '显示并保留中间思考步骤。'],
+    ['Files modified by the agent in this conversation', '智能体在此对话中修改的文件'],
+    ['Allow sandboxed commands to make network requests.', '允许沙盒中的命令发起网络请求。'],
+    ['Run terminal commands with sandbox restrictions.', '在沙盒限制下运行终端命令。'],
+    ['Security agent decides if commands run.', '由安全智能体决定是否运行命令。'],
+    ['Automatically decide if commands run.', '自动判断是否运行命令。'],
+    ['Agent always asks for review.', '智能体始终请求审核。'],
+    ['Open the agent panel on window reload', '窗口重新加载时打开智能体面板'],
+    ['Toggle Between Light/Dark Themes', '切换浅色或深色主题'],
+    ['Split Conversation Horizontally', '水平拆分对话'],
+    ['Split Conversation Vertically', '垂直拆分对话'],
+    ['Mark This Conversation as Unread', '将此对话标为未读'],
+    ['Mark This Conversation as Read', '将此对话标为已读'],
+    ['Include Jetski Default Customizations', '包含 Jetski 默认自定义项'],
+    ['Restart Main Language Server', '重启主语言服务'],
+    ['Failed to Generate Commit Message', '生成提交说明失败'],
+    ['Copy Conversation Markdown', '复制对话的 Markdown 内容'],
+    ['Select Previous Conversation', '选择上一个对话'],
+    ['Select Next Conversation', '选择下一个对话'],
+    ['Toggle Environment Selector', '切换环境选择器'],
+    ['Toggle Project Selector', '切换项目选择器'],
+    ['Toggle Overview Panel', '切换概览面板'],
+    ['Toggle File Viewer', '切换文件查看器'],
+    ['Customize Global Skills', '自定义全局技能'],
+    ['Default Customizations', '默认自定义项'],
+    ['Command Setup Script', '命令初始化脚本'],
+    ['Sandbox Allow Network', '允许沙盒访问网络'],
+    ['Enable Terminal Sandbox', '启用终端沙盒'],
+    ['Enable Notifications for Agent', '启用智能体通知'],
+    ['Enable Notifications', '启用通知'],
+    ['Agent terminated due to error', '智能体因错误而终止'],
+    ['Archive This Conversation', '归档此对话'],
+    ['Unpin This Conversation', '取消固定此对话'],
+    ['Pin This Conversation', '固定此对话'],
+    ['Rename This Conversation', '重命名此对话'],
+    ['Copy Conversation ID', '复制对话 ID'],
+    ['Find in Conversation', '在对话中查找'],
+    ['Search Conversations', '搜索对话'],
+    ['Download Diagnostics', '下载诊断信息'],
+    ['Open in Code Search', '在代码搜索中打开'],
+    ['Terminal: Add to Chat', '终端：添加到对话'],
+    ['Comment on Selection', '评论选中内容'],
+    ['Quote Selection', '引用选中内容'],
+    ['Equalize Split Panes', '均分拆分窗格'],
+    ['Close Terminal Tab', '关闭终端标签页'],
+    ['Go Forward in Pane', '在窗格中前进'],
+    ['Go Back in Pane', '在窗格中后退'],
+    ['Previous Aux Pane Tab', '上一个辅助窗格标签页'],
+    ['Next Aux Pane Tab', '下一个辅助窗格标签页'],
+    ['Collapse All Folders', '折叠所有文件夹'],
+    ['Expand All Folders', '展开所有文件夹'],
+    ['Copy error to clipboard', '将错误复制到剪贴板'],
+    ['Include unstaged changes', '包含未暂存的更改'],
+    ['Previous match (Shift+Enter)', '上一个匹配项 (Shift+Enter)'],
+    ['Next match (Enter)', '下一个匹配项 (Enter)'],
+    ['Clear search (Esc)', '清除搜索 (Esc)'],
+    ['Create Cloud Project', '创建云端项目'],
+    ['Group By Workspace', '按工作区分组'],
+    ['MCP Configuration Error:', 'MCP 配置错误：'],
+    ['MCP Install Error:', 'MCP 安装错误：'],
+    ['Confirm Window Reload', '确认重新加载窗口'],
+    ['Complete Onboarding Step', '完成引导步骤'],
+    ['Enable Demo Mode (Beta)', '启用演示模式（测试版）'],
+    ['Enter device name...', '输入设备名称…'],
+    ['Search workspaces...', '搜索工作区…'],
+    ['Agent Host Address', '智能体主机地址'],
+    ['Custom Context Menus', '自定义上下文菜单'],
+    ['Remove from Group', '从分组中移除'],
+    ['Move to New Group', '移至新分组'],
+    ['Continue Response', '继续回复'],
+    ['New Terminal Tab', '新建终端标签页'],
+    ['Split Terminal', '拆分终端'],
+    ['Open Commit Graph', '打开提交历史图'],
+    ['Staged Changes', '已暂存的更改'],
+    ['Branch Changes', '分支更改'],
+    ['Modified Files', '已修改的文件'],
+    ['Files Changed', '已更改的文件'],
+    ['Custom Agents', '自定义智能体'],
+    ['Chief of Staff', '统筹助手'],
+    ['Autonomous Mode', '自主模式'],
+    ['Agent Edits', '智能体编辑'],
+    ['Update Available', '有可用更新'],
+    ['Context Menus', '上下文菜单'],
+    ['UI Extensions', '界面扩展'],
+    ['Manage Hooks', '管理钩子'],
+    ['Strict Mode', '严格模式'],
+    ['Code Search', '代码搜索'],
+    ['Add to Chat', '添加到对话'],
+    ['MCP Servers', 'MCP 服务器'],
+    ['Select All', '全选'],
+    ['Accept Step', '接受此步骤'],
+    ['Reject Step', '拒绝此步骤'],
+    ['Open Launchpad', '打开启动台'],
+    ['New Window', '新建窗口'],
+    ['Close Tab', '关闭标签页'],
+    ['New Tab', '新建标签页'],
+    ['File Picker', '文件选择器'],
+    ['New Group', '新建分组'],
+    ['Split Right', '向右拆分'],
+    ['Split Down', '向下拆分'],
+    ['In Progress', '进行中'],
+    ['Input required', '需要输入'],
+    ['See Plans', '查看套餐'],
+    ['Select branch', '选择分支'],
+    ['Getting scripts...', '正在获取脚本…'],
+    ['Invalid Media', '无效的媒体文件'],
+    ['File explorer', '文件浏览器'],
+    ['Custom View', '自定义视图'],
+    ['Archive project', '归档项目'],
+    ['Copy value', '复制值'],
+    ['Copy Image', '复制图片'],
+    ['Commit succeeded', '提交成功'],
+    ['Amend succeeded', '修改提交成功'],
+    ['Push succeeded', '推送成功'],
+    ['Failed to Commit', '提交失败'],
+    ['Failed to Amend', '修改提交失败'],
+    ['Failed to Push', '推送失败'],
+    ['Zoom out (-)', '缩小 (-)'],
+    ['Reset zoom (0)', '重置缩放 (0)'],
+    ['Zoom in (+)', '放大 (+)'],
+    // 普通版 WSL 启动浮窗，来自 2.23.0 app.asar 的 wsl.js。
+    ['Downloading the Antigravity binary…', '正在下载 Antigravity 程序…'],
     ['Provides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.', '提供 Google Antigravity (AGY) 的全面指南、快速参考与站点地图，包括 Antigravity CLI (agy)、Antigravity 2.0、Antigravity IDE、Python SDK、斜杠命令、快捷键及自定义项（技能、规则、MCP、Sidecar）。当用户询问如何使用、配置或自定义 Antigravity、AGY、agy CLI、Antigravity IDE 或 Antigravity 2.0 时激活此技能。'],
     ['Within each group, models share a weekly limit and a 5-hour limit. Quota is consumed proportionally to the cost of the tokens. Thus, limits will last longer with shorter tasks or using more cost-effective models. The 5-hour limit smooths out aggregate demand to fairly distribute global capacity across all users, while your weekly limit is tied directly to your individual tier.', '在每个分组中，模型共享每周限额和 5 小时限额。额度的消耗与 Token 的成本成比例。因此，使用较短的任务或更具性价比的模型可以让限额维持更久。5 小时限额平滑了总体需求，以便在所有用户之间公平地分配全局容量，而您的每周限额则直接与您的个人套餐等级挂钩。'],
     ['When enabled, Agent can use browser tools to open URLs, read web pages, and interact with browser content. This allows the Agent access to important (and often critical) knowledge and methods of validation, but any browser integration does increase exposure to external malicious parties for security exploits.', '启用后，智能体可以使用浏览器工具打开 URL、读取网页并与浏览器内容交互。这能让智能体获取重要知识和验证方式，但任何浏览器集成都可能增加遭受外部恶意利用的风险。'],
@@ -933,39 +1081,48 @@
   }
 
 
+  // 权限目标属于数据：只翻译模板，并立即返回，禁止后续规则改写命令/路径。
+  function translatePermission(value) {
+    const text = value.trim();
+    // MutationObserver 会再次观察到翻译后的文本；二次处理也须保持目标不变。
+    if (/^(正在请求权限：|智能体需要权限才能|是，并.*(?:保存|始终允许)|允许\s)/s.test(text)) return value;
+    const scopes = { 'when not in a project': '不在项目中时', 'in this project': '在此项目中', 'in this workspace': '在此工作区', globally: '全局' };
+    const actions = {
+      'read access to this path': '读取此路径',
+      'write access to this path': '写入此路径',
+      'reading this URL': '读取此 URL',
+      'executing actions on this URL': '在此 URL 上执行操作',
+      'running this command outside the sandbox': '在沙盒外运行此命令',
+      'running this command': '运行此命令',
+      'using this MCP tool': '使用此 MCP 工具',
+    };
+    let m, translated;
+    if ((m = text.match(/^Requesting permission to (running this command outside the sandbox|running this command|read access to this path|write access to this path|reading this URL|executing actions on this URL|using this MCP tool) ([\s\S]+)$/))) {
+      translated = '正在请求权限：' + actions[m[1]] + ' ' + m[2];
+    } else if ((m = text.match(/^Agent needs permission to execute JavaScript on ([\s\S]+)$/))) {
+      translated = '智能体需要权限才能在 ' + m[1] + ' 上执行 JavaScript';
+    } else if ((m = text.match(/^Agent needs permission to act on ([\s\S]+)$/))) {
+      translated = '智能体需要权限才能操作 ' + m[1];
+    } else if ((m = text.match(/^Yes, save rule for '([\s\S]*)' (when not in a project|in this project|in this workspace|globally)$/))) {
+      translated = `是，并${scopes[m[2]]}保存 '${m[1]}' 的规则`;
+    } else if ((m = text.match(/^Yes, save rule (when not in a project|in this project|in this workspace|globally)$/))) {
+      translated = `是，并${scopes[m[1]]}保存规则`;
+    } else if ((m = text.match(/^Yes, and always allow '([\s\S]*)'(?: (when not in a project|in this project|in this workspace|globally))?$/))) {
+      translated = `是，并${scopes[m[2]] || ''}始终允许 '${m[1]}'`;
+    } else if ((m = text.match(/^Yes, and always allow(?: (when not in a project|in this project|in this workspace|globally))?$/))) {
+      translated = `是，并${scopes[m[1]] || ''}始终允许`;
+    } else if (!phrases.has(text) && (m = text.match(/^Allow ([\s\S]+)$/))) {
+      translated = '允许 ' + m[1];
+    } else if (/^(Requesting permission to |Agent needs permission to |Yes, (?:save rule|and always allow))/.test(text)) {
+      return value; // 新版未知权限模板保留原文，不能冒险翻译其中的目标。
+    } else {
+      return null;
+    }
+    return value.replace(text, () => translated); // 回调避免目标中的 $& / $' 被当作替换指令。
+  }
+
   // 动态变量与模板匹配（仅针对含捕获组、时间、计算等动态规则）
   const dynamicPatterns = [
-    // 动态权限请求
-    [/Requesting permission to (read access to this path|write access to this path|reading this URL|executing actions on this URL|running this command|running this command outside the sandbox|using this MCP tool) (.+)/g, (_match, action, target) => {
-      const actions = {
-        'read access to this path': '读取此路径',
-        'write access to this path': '写入此路径',
-        'reading this URL': '读取此 URL',
-        'executing actions on this URL': '在此 URL 上执行操作',
-        'running this command': '运行此命令',
-        'running this command outside the sandbox': '在沙盒外运行此命令',
-        'using this MCP tool': '使用此 MCP 工具',
-      };
-      return '正在请求权限：' + (actions[action] ?? action) + ' ' + target;
-    }],
-    [/Agent needs permission to act on (.+)/g, '智能体需要权限才能操作 $1'],
-    [/Agent needs permission to execute JavaScript on (.+)/g, '智能体需要权限才能在 $1 上执行 JavaScript'],
-    [/Yes, save rule for '([^']+)' (when not in a project|in this project|in this workspace|globally)/g, (_m, target, scope) => {
-      const scopes = { 'when not in a project': '在未处于项目时', 'in this project': '在此项目中', 'in this workspace': '在此工作区', 'globally': '全局' };
-      return `是，并在${scopes[scope] || scope}保存 '${target}' 的规则`;
-    }],
-    [/Yes, save rule (when not in a project|in this project|in this workspace|globally)/g, (_m, scope) => {
-      const scopes = { 'when not in a project': '在未处于项目时', 'in this project': '在此项目中', 'in this workspace': '在此工作区', 'globally': '全局' };
-      return `是，并在${scopes[scope] || scope}保存规则`;
-    }],
-    [/Yes, and always allow '([^']+)'( (when not in a project|in this project|in this workspace))?/g, (_m, target, _p, scope) => {
-      const scopes = { 'when not in a project': '在未处于项目时', 'in this project': '在此项目中', 'in this workspace': '在此工作区' };
-      return `是，并${scope ? '在' + scopes[scope] : ''}始终允许 '${target}'`;
-    }],
-    [/Yes, and always allow( (when not in a project|in this project|in this workspace))?/g, (_m, _p, scope) => {
-      const scopes = { 'when not in a project': '在未处于项目时', 'in this project': '在此项目中', 'in this workspace': '在此工作区' };
-      return `是，并${scope ? '在' + scopes[scope] : ''}始终允许`;
-    }],
 
     // 动态时间与耗时
     [/Worked for (\d+)\s*s\b/gi, '已工作 $1 秒'],
@@ -1025,8 +1182,6 @@
   ];
 
   const patternsPost = [
-    // 动态命令按钮兜底
-    [/^Allow (.+)$/g, '允许 $1'],
     // 动态选项与操作
     [/^(.+)\s+options$/g, '$1 选项'],
     [/(\b(?:Overview|Review|Terminal|Console|Output|Problems|Debug)\b|[^\x00-\xff]+)\s+tab\b/gi, '$1 标签页'],
@@ -1051,7 +1206,15 @@
   // 核心翻译流水线：精准完全匹配优先 -> 动态进度栏 -> 长句及复合短语子串 -> 动态变量规则
   function translate(value) {
     if (!value || !/[A-Za-z]/.test(value)) return value;
+    const permission = translatePermission(value);
+    if (permission !== null) return permission;
     const trimmed = value.trim();
+
+    // 启动浮窗中的发行版名称也属于变量，不能交给数量/短语规则改写。
+    let wsl;
+    if ((wsl = trimmed.match(/^Setting up WSL: ([\s\S]+)$/))) return value.replace(trimmed, () => '正在设置 WSL：' + wsl[1]);
+    if ((wsl = trimmed.match(/^Installing into ([\s\S]+)…$/))) return value.replace(trimmed, () => '正在安装到 ' + wsl[1] + '…');
+    if (/^(正在设置 WSL：|正在安装到 )/.test(trimmed)) return value;
 
     // 1. 精准完全匹配（独立按钮、菜单项、短词、快捷键与标点，彻底杜绝短词在未知长句中途破坏）
     const exact = matchExactPhrase(trimmed);
@@ -1097,13 +1260,13 @@
 
     // 跳过输入框
     if (node.nodeType === Node.TEXT_NODE) {
-      if (element.closest('[contenteditable="true"], [contenteditable=""], input')) {
+      if (element.closest('[contenteditable]:not([contenteditable="false"]), input')) {
         return true;
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       // 跳过编辑框子节点
       const parent = node.parentElement;
-      if (parent && parent.closest('[contenteditable="true"], [contenteditable=""], input')) {
+      if (parent && parent.closest('[contenteditable]:not([contenteditable="false"]), input')) {
         return true;
       }
     }
@@ -1187,6 +1350,7 @@
   }
 
   function translateElement(element) {
+    if (shouldSkip(element)) return;
     if (!isInAntigravityContainer(element)) return;
     for (const attr of ['aria-label', 'title', 'placeholder', 'alt']) {
       const value = element.getAttribute?.(attr);
@@ -1239,10 +1403,15 @@
   }
 
   function run() {
+    if (cancelled) return;
     document.documentElement.lang = 'zh-CN';
+    if (updating) {
+      const stale = document.createTreeWalker(document, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+      for (let node = stale.nextNode(); node; node = stale.nextNode()) node.__zh_patched = false;
+    }
     translateNode(document);
 
-    new MutationObserver((mutations) => {
+    observer = new MutationObserver((mutations) => {
       const nodesToTranslate = [];
       const elementsToTranslate = [];
 
@@ -1270,7 +1439,9 @@
       }
 
       if (nodesToTranslate.length > 0 || elementsToTranslate.length > 0) {
-        setTimeout(() => {
+        const timer = setTimeout(() => {
+          pendingTimers.delete(timer);
+          if (cancelled) return;
           for (const node of nodesToTranslate) {
             translateNode(node);
           }
@@ -1278,8 +1449,10 @@
             translateElement(el);
           }
         }, 0);
+        pendingTimers.add(timer);
       }
-    }).observe(document, {
+    });
+    observer.observe(document, {
       childList: true,
       subtree: true,
       characterData: true,

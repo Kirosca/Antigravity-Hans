@@ -38,19 +38,47 @@ func verifyExternalOverlay(path string, data []byte) error {
 	if err != nil {
 		return err
 	}
+	return verifyExternalOverlayInfo(info, data)
+}
+
+func verifyExternalOverlayInfo(info os.FileInfo, data []byte) error {
 	if !info.Mode().IsRegular() {
 		return fmt.Errorf("不是普通文件（符号链接或特殊文件）")
 	}
 	if info.Mode().Perm()&0o022 != 0 {
 		return fmt.Errorf("同组或其他用户可写 (%#o)", info.Mode().Perm())
 	}
-	if info.Size() > maxExternalOverlaySize {
+	if err := verifyOverlayOwner(info); err != nil {
+		return err
+	}
+	if info.Size() > maxExternalOverlaySize || len(data) > maxExternalOverlaySize {
 		return fmt.Errorf("体积超出上限 (%d 字节)", info.Size())
 	}
 	if !strings.Contains(string(data), overlaySentinel) {
 		return fmt.Errorf("内容缺少汉化脚本标记 %q", overlaySentinel)
 	}
 	return nil
+}
+
+func readExternalOverlay(path string, allowExternal bool) (string, error) {
+	// The trust flag skips provenance checks, never size/type/read safety.
+	data, info, err := readRegularFile(path, maxExternalOverlaySize)
+	if err != nil {
+		return "", err
+	}
+	if !allowExternal {
+		if err := verifyExternalOverlayInfo(info, data); err != nil {
+			return "", err
+		}
+		parent, err := os.Stat(filepath.Dir(path))
+		if err != nil {
+			return "", err
+		}
+		if err := verifyOverlayOwner(parent); err != nil {
+			return "", err
+		}
+	}
+	return string(data), nil
 }
 
 // LoadOverlaySource 优先从可执行文件同目录加载外部 JS，若不存在或校验不通过则使用编译期内嵌版本。
@@ -60,21 +88,18 @@ func LoadOverlaySource(allowExternal bool) string {
 	if err == nil {
 		exeDir := filepath.Dir(exePath)
 		extPath := filepath.Join(exeDir, externalOverlayName)
-		if data, err := os.ReadFile(extPath); err == nil {
+		if source, err := readExternalOverlay(extPath, allowExternal); err == nil {
 			if allowExternal {
-				fmt.Printf("[警告] 已跳过安全校验，使用外部汉化脚本: %s (SHA-256 %s)\n", extPath, overlayFingerprint(string(data)))
-				return string(data)
-			}
-			if err := verifyExternalOverlay(extPath, data); err != nil {
-				fmt.Printf("[警告] 已忽略外部汉化脚本（校验未通过）: %v\n", err)
-				fmt.Printf("       路径: %s\n", extPath)
-				fmt.Println("       如需强制加载，请加参数 --trust-external-overlay；否则使用编译期内嵌脚本。")
+				fmt.Printf("[警告] 已显式信任外部汉化脚本: %s (SHA-256 %s)\n", extPath, overlayFingerprint(source))
 			} else {
-				fmt.Printf("[提示] 使用外部汉化脚本: %s (SHA-256 %s)\n", extPath, overlayFingerprint(string(data)))
-				return string(data)
+				fmt.Printf("[提示] 使用外部汉化脚本: %s (SHA-256 %s)\n", extPath, overlayFingerprint(source))
 			}
+			return source
+		} else if !os.IsNotExist(err) {
+			fmt.Printf("[警告] 已忽略外部汉化脚本: %v\n       路径: %s\n", err, extPath)
 		}
 	}
 	// 兜底：使用内嵌版本
+	fmt.Printf("[提示] 使用内嵌汉化脚本 (SHA-256 %s)\n", overlayFingerprint(string(embeddedOverlayJS)))
 	return string(embeddedOverlayJS)
 }

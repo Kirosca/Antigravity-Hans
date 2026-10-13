@@ -51,7 +51,7 @@ for (const [key, value] of entries) {
   }
 
   // 只盯小写英文单词：专有名词与协议名通常是大写，混在中文里的小写词基本就是漏译
-  const leftovers = [...new Set((String(value).match(/\\b[a-z][a-z'-]{2,}\\b/g) || []))]
+  const leftovers = [...new Set((String(value).match(/\b[a-z][a-z'-]{2,}\b/g) || []))]
     .filter((word) => !ALLOWED_LATIN.has(word));
   if (leftovers.length) warnings.push('译文残留英文 ' + leftovers.join(',') + ': ' + where);
 }
