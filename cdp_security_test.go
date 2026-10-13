@@ -110,6 +110,22 @@ func TestBrowserWSURLRejectsOffHostAddress(t *testing.T) {
 	}
 }
 
+func TestNormalAppReusesOwnedBrowserWithNoOpenWindows(t *testing.T) {
+	var s *httptest.Server
+	s = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/json/list" {
+			_, _ = fmt.Fprint(w, "[]")
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]string{"webSocketDebuggerUrl": fmt.Sprintf("ws://127.0.0.1:%d/devtools/browser/live", serverPort(s))})
+	}))
+	defer s.Close()
+	port := serverPort(s)
+	if got, ok := findCDPPortWithOwner(AppNormal, func(p int) bool { return p == port }, port); !ok || got != port {
+		t.Fatal("background normal app would be unnecessarily restarted")
+	}
+}
+
 func TestEnsureTargetInjectedProtocolAndVerification(t *testing.T) {
 	var installed atomic.Bool
 	var registrations atomic.Int32

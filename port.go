@@ -88,6 +88,13 @@ func findCDPPortWithOwner(cfg AppConfig, belongsToApp func(int) bool, additional
 				return port, true
 			}
 		}
+		// A normal app can keep running with no windows (or only a sign-in
+		// window). Its verified browser endpoint can watch the next app page.
+		if cfg.Name == AppNormal.Name {
+			if _, err := getBrowserWSURL(port); err == nil {
+				return port, true
+			}
+		}
 	}
 	return 0, false
 }
