@@ -1,6 +1,7 @@
 package main
 
 import (
+	"debug/buildinfo"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -96,9 +97,20 @@ func isOwnMonitor(pid int32) bool {
 	}
 	if exe, err := proc.Exe(); err == nil && exe != "" {
 		self, err := os.Executable()
-		return err == nil && samePath(exe, self)
+		return err == nil && isMonitorExecutable(exe, self)
 	}
 	return false
+}
+
+func isMonitorExecutable(exe, self string) bool {
+	if samePath(exe, self) {
+		return true
+	}
+	// A renamed or older release may live at a different path. Authenticate
+	// its Go module instead of trusting a process-name substring, so --stop
+	// still works during upgrades and does not start a competing monitor.
+	info, err := buildinfo.ReadFile(exe)
+	return err == nil && info.Path == "antigravity-hans"
 }
 
 func samePath(a, b string) bool {

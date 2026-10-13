@@ -233,3 +233,20 @@ func TestMonitorLockRejectsSymlink(t *testing.T) {
 		t.Fatal("lock changed unrelated file")
 	}
 }
+
+func TestMonitorExecutableDoesNotTrustFilenameAlone(t *testing.T) {
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !isMonitorExecutable(self, self) {
+		t.Fatal("own executable rejected")
+	}
+	fake := filepath.Join(t.TempDir(), "antigravity-hans-fake")
+	if err := os.WriteFile(fake, []byte("not a Go monitor"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if isMonitorExecutable(fake, self) {
+		t.Fatal("process filename accepted without executable identity")
+	}
+}
