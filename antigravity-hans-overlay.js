@@ -1,6 +1,6 @@
 (() => {
   if (typeof window === 'undefined') return;
-  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.23.0-20261014-auto-preview';
+  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.23.0-20261014-sidebar-menus';
   if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document && window.__antigravityZhPatchFingerprint === fingerprint) return;
   const updating = window.__antigravityZhPatchInstalled === true && window.__observedDocument === document;
   if (typeof window.__antigravityZhPatchCleanup === 'function') window.__antigravityZhPatchCleanup();
@@ -38,6 +38,21 @@
     ['Security agent decides if commands run.', '由安全智能体决定是否运行命令。'],
     ['Automatically decide if commands run.', '自动判断是否运行命令。'],
     ['Auto (Preview)', '自动（预览）'],
+    ['This page is going away soon', '此页面即将停用'],
+    ['Search conversations with', '点击左上角的'],
+    ['in the top left.', '可搜索对话。'],
+    ['View archived in the sidebar', '在侧边栏查看已归档内容'],
+    ['menu)', '菜单)'],
+    ['Mark All as Read', '全部标为已读'],
+    ['Workspace + Worktree', '工作区与工作树'],
+    ['Project + Worktree', '项目与工作树'],
+    ['Archived Only', '仅显示已归档'],
+    ['Custom Order', '自定义顺序'],
+    ['Only Unread', '仅显示未读'],
+    ['Sort By', '排序方式'],
+    ['Display', '显示'],
+    ['Scheduled', '定时任务'],
+    ['Decorations', '标记'],
     ['Agent always asks for review.', '智能体始终请求审核。'],
     ['Open the agent panel on window reload', '窗口重新加载时打开智能体面板'],
     ['Toggle Between Light/Dark Themes', '切换浅色或深色主题'],
