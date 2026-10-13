@@ -73,13 +73,13 @@ func CreateChineseShortcut(cfg AppConfig) error {
 
 		psScript = fmt.Sprintf(`
 $sh = New-Object -ComObject WScript.Shell
-$oldLnk = $sh.CreateShortcut(%q)
-$newLnk = $sh.CreateShortcut(%q)
+$oldLnk = $sh.CreateShortcut(%s)
+$newLnk = $sh.CreateShortcut(%s)
 
 # 克隆并修改属性
-$newLnk.TargetPath = %q
-$newLnk.Arguments = %q
-$newLnk.WorkingDirectory = %q
+$newLnk.TargetPath = %s
+$newLnk.Arguments = %s
+$newLnk.WorkingDirectory = %s
 $newLnk.Description = $oldLnk.Description
 
 # 图标设置：如果原快捷方式使用的是独立 .ico 图标，保留之；
@@ -89,10 +89,10 @@ if ($oldLnk.IconLocation -and $oldLnk.IconLocation -like "*.ico*") {
 } elseif ($oldLnk.TargetPath) {
     $newLnk.IconLocation = $oldLnk.TargetPath + ",0"
 } else {
-    $newLnk.IconLocation = %q + ",0"
+    $newLnk.IconLocation = %s + ",0"
 }
 $newLnk.Save()
-`, foundOldLnk, targetLnkPath, selfExeAbs, arg, selfDir, targetExe)
+`, psQuote(foundOldLnk), psQuote(targetLnkPath), psQuote(selfExeAbs), psQuote(arg), psQuote(selfDir), psQuote(targetExe))
 	} else {
 		// 如果找不到原快捷方式，直接创建一个新的
 		if targetExe == "" {
@@ -104,13 +104,13 @@ $newLnk.Save()
 		}
 		psScript = fmt.Sprintf(`
 $sh = New-Object -ComObject WScript.Shell
-$newLnk = $sh.CreateShortcut(%q)
-$newLnk.TargetPath = %q
-$newLnk.Arguments = %q
-$newLnk.WorkingDirectory = %q
-$newLnk.IconLocation = %q + ",0"
+$newLnk = $sh.CreateShortcut(%s)
+$newLnk.TargetPath = %s
+$newLnk.Arguments = %s
+$newLnk.WorkingDirectory = %s
+$newLnk.IconLocation = %s + ",0"
 $newLnk.Save()
-`, targetLnkPath, selfExeAbs, arg, selfDir, targetExe)
+`, psQuote(targetLnkPath), psQuote(selfExeAbs), psQuote(arg), psQuote(selfDir), psQuote(targetExe))
 	}
 
 	// 执行 PowerShell 脚本

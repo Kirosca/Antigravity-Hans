@@ -9,12 +9,10 @@
     ['Within each group, models share a weekly limit and a 5-hour limit. Quota is consumed proportionally to the cost of the tokens. Thus, limits will last longer with shorter tasks or using more cost-effective models. The 5-hour limit smooths out aggregate demand to fairly distribute global capacity across all users, while your weekly limit is tied directly to your individual tier.', '在每个分组中，模型共享每周限额和 5 小时限额。额度的消耗与 Token 的成本成比例。因此，使用较短的任务或更具性价比的模型可以让限额维持更久。5 小时限额平滑了总体需求，以便在所有用户之间公平地分配全局容量，而您的每周限额则直接与您的个人套餐等级挂钩。'],
     ['When enabled, Agent can use browser tools to open URLs, read web pages, and interact with browser content. This allows the Agent access to important (and often critical) knowledge and methods of validation, but any browser integration does increase exposure to external malicious parties for security exploits.', '启用后，智能体可以使用浏览器工具打开 URL、读取网页并与浏览器内容交互。这能让智能体获取重要知识和验证方式，但任何浏览器集成都可能增加遭受外部恶意利用的风险。'],
     ['When enabled, your UI will be slightly modified to ensure more consistent demos. This is only recommended for demo purposes. In most cases, you can run "Antigravity: Start Demo Mode" and "Antigravity: Stop Demo Mode" to control this switch and update your ~/.gemini/antigravity data directory.', '启用后，您的界面将稍作修改以确保演示的一致性。仅建议用于演示目的。在大多数情况下，您可以运行 “Antigravity: Start Demo Mode” 和 “Antigravity: Stop Demo Mode” 来控制此开关并更新您的 ~/.gemini/antigravity 数据目录。'],
-    ['Agent auto-executes commands matched by an allow list entry. For Unix shells, an allow list entry matches a command if its space-separated tokens form a prefix of the command\\\'s tokens. For PowerShell, the entry tokens may match any contiguous subsequence of the command tokens.', '智能体将自动执行与允许列表条目匹配的命令。对于 Unix Shell，如果允许列表条目的空格分隔令牌是该命令令牌的前缀，则匹配。对于 PowerShell，条目令牌可匹配命令令牌的任意连续子序列。'],
+    ['Agent auto-executes commands matched by an allow list entry. For Unix shells, an allow list entry matches a command if its space-separated tokens form a prefix of the command\'s tokens. For PowerShell, the entry tokens may match any contiguous subsequence of the command tokens.', '智能体将自动执行与允许列表条目匹配的命令。对于 Unix Shell，如果允许列表条目的空格分隔令牌是该命令令牌的前缀，则匹配。对于 PowerShell，条目令牌可匹配命令令牌的任意连续子序列。'],
     ['Comprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.', 'Google Antigravity 自定义系统的全面指南与参考。用于解释自定义项的工作原理、加载优先级、发现机制，并指导技能、规则、插件、钩子及 MCP 服务器的创建。'],
     ['Show a floating notification card when background conversations need your input. Answer questions, approve commands, and grant permissions without leaving your current conversation. Share feedback at go/inline-actions-feedback.', '当后台对话需要您输入时显示浮动通知卡片。无需离开当前对话即可回答问题、批准命令和授予权限。可在 go/inline-actions-feedback 分享反馈。'],
-    ['When toggled on, Antigravity IDE will use your AI credits to fulfill model requests once you\\\'re out of model quota. Antigravity IDE will always use your model quota first before using AI credits.', '开启后，当模型额度用完时，Antigravity IDE 将使用 AI 积分完成模型请求。Antigravity IDE 始终会先使用模型额度，再使用 AI 积分。'],
     ['When toggled on, Antigravity IDE will use your AI credits to fulfill model requests once you\'re out of model quota. Antigravity IDE will always use your model quota first before using AI credits.', '开启后，当模型额度用完时，Antigravity IDE 将使用 AI 积分完成模型请求。Antigravity IDE 始终会先使用模型额度，再使用 AI 积分。'],
-    ['When toggled on, Antigravity will use your AI credits to fulfill model requests once you\\\'re out of model quota. Antigravity will always use your model quota first before using AI credits.', '开启后，当模型额度用完时，Antigravity 将使用 AI 积分完成模型请求。Antigravity 始终会先使用模型额度，再使用 AI 积分。'],
     ['Agent asks for permission before executing commands matched by a deny list entry. The deny list follows the same matching rules as the allow list and takes precedence over the allow list.', '在执行与拒绝列表条目匹配的命令前，智能体会先请求权限。拒绝列表遵循与允许列表相同的匹配规则，且优先级高于允许列表。'],
     ['When toggled on, Antigravity will use your AI credits to fulfill model requests once you\'re out of model quota. Antigravity will always use your model quota first before using AI credits.', '开启后，当模型额度用完时，Antigravity 将使用 AI 积分完成模型请求。Antigravity 始终会先使用模型额度，再使用 AI 积分。'],
     ['View your available model quota and AI credits. Model quota refreshes periodically based on your plan. Enable AI Credit Overages to continue using models when your quota is exhausted.', '查看可用的模型额度和 AI 积分。模型额度会根据你的计划定期刷新。启用 AI 积分超额使用后，可在额度耗尽时继续使用模型。'],
@@ -26,7 +24,6 @@
     ['When enabled, the agent will be able to access its knowledge base to inform its responses and automatically generate knowledge items in the background.', '启用后，智能体将能够访问其知识库以辅助生成回复，并在后台自动生成知识项。'],
     ['Automatically prompt you to restart the app when a new update is available. When disabled, you can check for updates manually from the app menu.', '当有新版本可用时，自动提示您重启应用。禁用后，您可以从应用菜单中手动检查更新。'],
     ['Changes the base URL for marketplace search results. You must restart Antigravity IDE to use the new marketplace after changing this value.', '更改插件市场搜索结果的基准 URL。更改此值后，您必须重启 Antigravity IDE 才能使用新的插件市场。'],
-    ['Specifies Agent\\\'s behavior when asking for review on artifacts, which are documents it creates to enable a richer conversation experience.', '指定智能体在请求审核产物时的行为。产物是智能体创建的文档，用于提供更丰富的对话体验。'],
     ['Specifies Agent\'s behavior when asking for review on artifacts, which are documents it creates to enable a richer conversation experience.', '指定智能体在请求审核产物时的行为。产物是智能体创建的文档，用于提供更丰富的对话体验。'],
     ['Note: A change to this setting will only apply to new messages sent to Agent. In-progress responses will use the previous setting value.', '注意：对此设置的更改将仅适用于发送给智能体的新消息。正在进行的回复将使用之前的设置值。'],
     ['Changes the base URL for marketplace search results. You must restart Antigravity to use the new marketplace after changing this value.', '更改插件市场搜索结果的基准 URL。更改此值后，您必须重启 Antigravity 才能使用新的插件市场。'],
@@ -35,19 +32,19 @@
     ['When enabled, Agent is given awareness of lint errors created by its edits and may fix them without explicit user prompting.', '启用后，智能体将感知到其编辑所导致的 Lint 错误，并可在不明确提示用户的情况下进行修复。'],
     ['Choose a predefined security preset for the agent. This controls terminal auto-execution policy, and file access policy.', '为智能体选择预设安全策略。它会控制终端自动执行策略和文件访问策略。'],
     ['Custom path for the browser user profile directory. Leave empty for default (~/.gemini/antigravity-browser-profile).', '浏览器用户资料目录的自定义路径。留空则使用默认路径（~/.gemini/antigravity-browser-profile）。'],
-    ['You currently don\\\'t have any MCP Servers installed. Add an MCP server above or add a custom one via the MCP Config.', '您当前还没有安装任何 MCP 服务器。请在上方添加 MCP 服务器，或通过 MCP 配置文件添加自定义服务器。'],
-    ['When enabled, \\\'Explain and Fix\\\' actions will continue in the current conversation instead of starting a new one.', '启用后，“解释并修复”操作将在当前对话中继续，而不是开始新对话。'],
+    ['You currently don\'t have any MCP Servers installed. Add an MCP server above or add a custom one via the MCP Config.', '您当前还没有安装任何 MCP 服务器。请在上方添加 MCP 服务器，或通过 MCP 配置文件添加自定义服务器。'],
+    ['When enabled, \'Explain and Fix\' actions will continue in the current conversation instead of starting a new one.', '启用后，“解释并修复”操作将在当前对话中继续，而不是开始新对话。'],
     ['The app will be accessible from the menu bar and will keep running in the background when all windows are closed.', '应用可从菜单栏访问，并会在所有窗口关闭后继续在后台运行。'],
     ['Reliable automation, in-depth debugging, and performance analysis in Chrome using Chrome DevTools and Puppeteer', '使用 Chrome DevTools 和 Puppeteer 在 Chrome 中进行可靠的自动化、深度调试和性能分析'],
     ['We recommend attaching logs. Attaching logs will help the Antigravity team act on and prioritize your feedback.', '我们建议附上日志。附上日志将有助于 Antigravity 团队处理并优先解决您的反馈。'],
     ['When enabled, the Changes Overview toolbar will automatically expand when Agent finishes generating a response.', '启用后，Changes Overview 工具栏将在智能体完成回复生成时自动展开。'],
     ['Projects serve as your workspace where your agents work. Each project has its own file scope and permissions. ', '项目是智能体工作的工作区。每个项目都有自己的文件范围和权限。'],
     ['Agents run in a secure sandbox that restricts access to external resources outside of your trusted folders.', '智能体会在安全沙盒中运行，限制其访问受信任文件夹之外的外部资源。'],
-    ['Prototype, build & run modern apps users love with Firebase\\\'s backend, AI, and operational infrastructure.', '利用 Firebase 的后端、AI 和运营基础设施，原型设计、构建和运行深受用户喜爱的现代应用。'],
+    ['Prototype, build & run modern apps users love with Firebase\'s backend, AI, and operational infrastructure.', '利用 Firebase 的后端、AI 和运营基础设施，原型设计、构建和运行深受用户喜爱的现代应用。'],
     ['Terminal commands always require review and the agent cannot access files outside of its given workspaces.', '终端命令始终需要审核，且智能体无法访问其给定工作区之外的文件。'],
     ['Developer-only tools. These settings are stored locally in this browser and do not affect other users.', '仅限开发者工具。这些设置保存在当前浏览器本地，不会影响其他用户。'],
     ['to be installed. The browser subagent can be invoked by typing /browser in the conversation input box.', '安装 Google Chrome。您可以在对话输入框中输入 /browser 来调用浏览器子智能体。'],
-    ['When enabled, Agent will use IDE\\\'s shell integration to detect and report terminal command execution.', '启用后，智能体将使用 IDE 的 Shell 集成来检测并报告终端命令的执行。'],
+    ['When enabled, Agent will use IDE\'s shell integration to detect and report terminal command execution.', '启用后，智能体将使用 IDE 的 Shell 集成来检测并报告终端命令的执行。'],
     ['When enabled, Agent will show browser notifications when user action is needed or execution finishes.', '启用后，当需要用户操作或执行完成时，智能体将显示浏览器通知。'],
     ['When toggled on, Antigravity IDE collects usage data to help Google enhance performance and features.', '开启后，Antigravity IDE 将收集使用数据，以帮助 Google 提升性能和功能。'],
     ['Keep the app accessible from the menu bar and running in the background when all windows are closed.', '在所有窗口关闭后，保持应用可从菜单栏访问并在后台继续运行。'],
@@ -56,7 +53,7 @@
     ['When toggled on, Antigravity collects usage data to help Google enhance performance and features.', '开启后，Antigravity 会收集使用数据，帮助 Google 改进性能和功能。'],
     ['Select one of the three options. Agent settings and permissions can be further customized below.', '选择以下三个选项之一。智能体设置和权限可在下方进一步自定义。'],
     ['All terminal commands require review. The agent can read or write to any file in the machine.', '所有终端命令均需要审核。智能体可以读取或写入电脑上的任何文件。'],
-    ['Confirm the command is safe to run outside of the sandbox with full network and disk access.', '确认该命令可在沙盒外 safe 运行，并拥有完整网络和磁盘访问权限。'],
+    ['Confirm the command is safe to run outside of the sandbox with full network and disk access.', '确认该命令可在沙盒外安全运行，并拥有完整网络和磁盘访问权限。'],
     ['Port number for Chrome DevTools Protocol remote debugging. Leave empty for default (9222).', 'Chrome DevTools Protocol 远程调试端口号。留空则使用默认值（9222）。'],
     ['Try out early-stage features before they ship. These may change or be removed at any time.', '在正式发布前试用早期功能。这些功能可能随时更改或移除。'],
     ['When enabled, the agent will be able to access past conversations to inform its responses.', '启用后，智能体将能够访问历史对话以辅助其生成回复。'],
@@ -65,7 +62,6 @@
     ['The browser subagent can be invoked by typing /browser in the conversation input box.', '你可以在对话输入框中输入 /browser 来调用浏览器子智能体。'],
     ['Receive product updates, tips, and promotions from Google Antigravity IDE via email.', '通过电子邮件接收来自 Google Antigravity IDE 的产品更新、技巧和促销活动。'],
     ['Predict the location of your next edit and navigates you there with a tab keypress.', '预测您下一次编辑的位置，并在按下 Tab 键时导航至该处。'],
-    ['To modify notification settings, open your operating system\\\'s system preferences.', '要修改通知设置，请打开操作系统的系统设置。'],
     ['To modify notification settings, open your operating system\'s system preferences.', '要修改通知设置，请打开操作系统的系统设置。'],
     ['Receive product updates, tips, and promotions from Google Antigravity via email.', '通过电子邮件接收 Google Antigravity 的产品更新、技巧和促销信息。'],
     ['Configures how the agent tries to access files outside of its working folders.', '配置智能体如何访问工作文件夹之外的文件。'],
@@ -104,7 +100,6 @@
     ['External tools the agent can call via Model Context Protocol.', '智能体可通过 Model Context Protocol 调用的外部工具。'],
     ['The agent will wait for you to install the browser extension.', '智能体会等待你安装浏览器扩展。'],
     ['This migration may mess up your settings, chats, and sidebar.', '此迁移可能会影响您的设置、聊天记录和侧边栏。'],
-    ['Configure the agent\\\'s visual theme and display preferences.', '配置智能体的视觉主题与显示偏好。'],
     ['Disables all safety barriers for maximal iteration velocity.', '禁用所有安全屏障，以获得最大的迭代速度。'],
     ['Prevent the computer from sleeping while the app is running.', '应用运行时防止电脑进入睡眠。'],
     ['Allow/deny agent browser actuation access to specific URLs.', '允许或拒绝智能体对指定 URL 执行浏览器操作。'],
@@ -124,9 +119,41 @@
     ['Sidebar after conversations are regrouped by workspace', '按工作区分组后的对话侧边栏'],
     ['URLs the agent can perform actions on via the browser.', '智能体可以通过浏览器执行操作的 URL。'],
     ['Configure default behaviors, skills, and MCP servers.', '配置默认行为、技能和 MCP 服务器。'],
+    ['Controls the actions the agent can take.', '控制智能体可以执行的操作。'],
+    ['Modify permissions for file, terminal, and MCP tools.', '修改文件、终端和 MCP 工具的权限。'],
+    ['Modify permissions for 文件, terminal, and MCP tools.', '修改文件、终端和 MCP 工具的权限。'],
+    ['Whether the agent asks you to review its documents.', '智能体是否请求您审核其生成的文档。'],
+    ['Type / and select plan to have the agent generate a plan.', '输入 / 并选择 plan 让智能体生成计划。'],
+    ['Type / and select plan to have the agent generate a plan', '输入 / 并选择 plan 让智能体生成计划'],
+    ['to have the agent generate a plan.', '让智能体生成计划。'],
+    ['to have the agent generate a plan', '让智能体生成计划'],
+    ['and select plan', '并选择 plan'],
+    ['Scan the code to open this device in Remote Control, or', '扫描二维码以在远程控制中打开此设备，或'],
+    ['Scan the code to open this device in Remote Control, or ', '扫描二维码以在远程控制中打开此设备，或 '],
+    ['扫描二维码以在此设备上打开 Remote Control, or', '扫描二维码以在远程控制中打开此设备，或'],
+    ['扫描二维码以在此设备上打开 Remote Control, or ', '扫描二维码以在远程控制中打开此设备，或 '],
+    ['扫描二维码以此设备上打开 Remote Control, or', '扫描二维码以在远程控制中打开此设备，或'],
+    ['扫描二维码以此设备上打开 Remote Control, or ', '扫描二维码以在远程控制中打开此设备，或 '],
+    ['Scan the code to open this device in', '扫描二维码以在远程控制中打开此设备'],
+    ['Continue your work from another device with Remote Control. Scan the QR code or open the link below.', '通过远程控制在其他设备上继续工作。请扫描二维码或打开下方链接。'],
+    ['Remote Control isn\'t active on this instance. Enable it in', '当前实例未启用远程控制。请在以下位置启用：'],
+    ['Open in Remote Control', '在远程控制中打开'],
+    ['Remote Control Issue', '远程控制问题'],
+    [', or copy link.', '，或复制链接。'],
+    [', or copy link', '，或复制链接'],
+    ['or copy link', '或复制链接'],
+    ['and select', '并选择'],
+    [', or', '，或'],
+    ['Every command requires approval.', '每条命令都需要审核。'],
+    ['Ask before sensitive operations.', '执行敏感操作前先询问。'],
+    ['Run all commands without restrictions.', '无限制运行所有命令。'],
+    ['all commands without restrictions.', '无限制运行所有命令。'],
+    ['all commands without restrictions', '无限制运行所有命令'],
+    ['to be installed.', '已安装。'],
+    ['to be installed', '已安装'],
     ['Configure external tools via Model Context Protocol.', '配置通过 Model Context Protocol 使用的外部工具。'],
     ['Keyboard shortcuts for quick navigation and control.', '用于快速导航和控制的键盘快捷键。'],
-    ['You currently don\\\'t have any MCP Servers installed.', '您当前还没有安装任何 MCP 服务器。'],
+    ['You currently don\'t have any MCP Servers installed.', '您当前还没有安装任何 MCP 服务器。'],
     ['Prompt for approval before running browser scripts.', '运行浏览器脚本前请求批准。'],
     ['Quickly add and update imports with a tab keypress.', '按下 Tab 键快速添加和更新导入。'],
     ['Search for MCP servers to add to your configuration', '搜索要添加到配置中的 MCP 服务器'],
@@ -156,6 +183,8 @@
     ['No customizations found for this workspace.', '此工作区没有找到自定义内容。'],
     ['to back up your data and run the migration.', '备份数据并运行迁移。'],
     ['Work with local agents from another device.', '从其他设备连接并使用本地智能体。'],
+    ['Scan the code to open this device in Remote Control, or copy link.', '扫描二维码以在远程控制中打开此设备，或复制链接。'],
+    ['Exploring files, running commands, editing artifact', '正在探索文件、运行命令、编辑产物'],
     ['Antigravity would like to use the browser.', 'Antigravity 想要使用浏览器。'],
     ['Confirmation required to execute this step', '执行此步骤需要确认'],
     ['Folder no longer exists or is unavailable.', '文件夹不再存在或不可用。'],
@@ -228,8 +257,12 @@
     ['Click to copy full command', '点击复制完整命令'],
     ['Copy conversation markdown', '复制对话 Markdown'],
     ['Copy full URL to clipboard', '复制完整 URL 到剪贴板'],
+    ['File path breadcrumbs', '文件路径导航面包屑'],
     ['Search MCP servers by name', '按名称搜索 MCP 服务器'],
     ['Archive this conversation', '归档此对话'],
+    ['Archive conversation', '归档对话'],
+    ['Pin this conversation', '固定此对话'],
+    ['Pin conversation', '固定对话'],
     ['Browser User Profile Path', '浏览器用户资料路径'],
     ['Build With Google Plugins', '使用 Google 插件构建'],
     ['Built with Google Plugins', '使用 Google 插件构建'],
@@ -280,6 +313,7 @@
     ['Model Context Protocol', '模型上下文协议 (MCP)'],
     ['My Custom Gemini Model', '我的自定义 Gemini 模型'],
     ['No more older messages', '没有更早的消息了'],
+    ['Load older messages', '加载更早的消息'],
     ['Open Browser (Preview)', '打开浏览器 (预览)'],
     ['Opening URL in Browser', '正在浏览器中打开 URL'],
     ['quota and credits data', '额度和积分数据'],
@@ -399,6 +433,13 @@
     ['Enable Demo Mode', '启用演示模式'],
     ['Enable Telemetry', '启用遥测'],
     ['File Permissions', '文件权限'],
+    ['Global Permissions', '全局权限'],
+    ['Global permissions', '全局权限'],
+    ['Global Permission', '全局权限'],
+    ['global permissions', '全局权限'],
+    ['Inherits your Global Permissions when working in this project.', '在此项目中工作时继承您的全局权限。'],
+    ['Also includes Global Permissions when working in this project.', '在此项目中工作时还包括“全局权限”。'],
+    ['Automations do not inherit Global Permissions.', '自动化任务不继承全局权限。'],
     ['General Feedback', '一般反馈'],
     ['Keep In Menu Bar', '保留在菜单栏'],
     ['Marketing Emails', '营销邮件'],
@@ -466,6 +507,26 @@
     ['Request Review', '请求审核'],
     ['Require Review', '需要审核'],
     ['Review Changes', '审核更改'],
+    ['Scroll to Bottom', '滚动到底部'],
+    ['Scroll to bottom', '滚动到底部'],
+    ['Undo to this point', '撤销到此处'],
+    ['Stop execution', '停止执行'],
+    ['Fold code block', '折叠代码块'],
+    ['Add inline comment', '添加行内批注'],
+    ['inline comment', '行内批注'],
+    ['Inline Widget', '内联组件'],
+    ['Overview tab', '概览标签页'],
+    ['Review tab', '审核标签页'],
+    ['Terminal tab', '终端标签页'],
+    ['Maximize Pane', '最大化窗格'],
+    ['File Viewer', '文件查看器'],
+    ['breadcrumbs', '路径导航'],
+    ['Plan Review Policy', '计划审核策略'],
+    ['Permission Preset', '权限预设'],
+    ['Permission preset', '权限预设'],
+    ['Tool Permissions', '工具权限'],
+    ['Tool permissions', '工具权限'],
+    ['Tool Permission', '工具权限'],
     ['Select Project', '选择项目'],
     ['Toggle Sidebar', '切换侧边栏'],
     ['Typeahead menu', '自动补全菜单'],
@@ -542,8 +603,10 @@
     ['New Project', '新建项目'],
     ['No Subtitle', '无副标题'],
     ['Open Folder', '打开文件夹'],
+    ['Open IDE', '打开 IDE'],
     ['or join the', '或加入'],
     ['Permissions', '权限'],
+    ['Permission', '权限'],
     ['Quick Start', '快速开始'],
     ['Recommended', '推荐'],
     ['Suggestions', '建议'],
@@ -556,6 +619,9 @@
     ['Always Ask', '始终询问'],
     ['Appearance', '外观'],
     ['Automation', '自动化'],
+    ['Automations', '自动化'],
+    ['Environment', '环境'],
+    ['More options', '更多选项'],
     ['Avatar URL', '头像 URL'],
     ['Background', '背景色'],
     ['Bug Report', '错误报告'],
@@ -563,6 +629,8 @@
     ['Dark Theme', '深色主题'],
     ['Date Added', '添加日期'],
     ['Deprecated', '已弃用'],
+    ['Device Name', '设备名称'],
+    ['App version', '应用版本'],
     ['Edit Model', '编辑模型'],
     ['File Reads', '文件读取'],
     ['Foreground', '前景色'],
@@ -605,6 +673,7 @@
     ['[MODIFY]', '[修改]'],
     ['Advanced', '高级'],
     ['Archived', '已归档'],
+    ['Artifacts', '产物列表'],
     ['Bot Name', '机器人名称'],
     ['Disabled', '已禁用'],
     ['Download', '下载'],
@@ -618,12 +687,15 @@
     ['Open URL', '打开 URL'],
     ['Planning', '规划'],
     ['Projects', '项目'],
+    ['Modified in', '已在'],
     ['Searched', '已搜索'],
     ['searches', '搜索'],
     ['Searches', '搜索'],
     ['See less', '收起'],
     ['Settings', '设置'],
     ['Show all', '显示全部'],
+    ['Show All', '显示全部'],
+    ['copy link', '复制链接'],
     ['Sign Out', '退出登录'],
     ['Terminal', '终端'],
     ['Worktree', '工作树'],
@@ -673,6 +745,8 @@
     ['Narrow', '窄'],
     ['Picker', '选择器'],
     ['Pinned', '已固定'],
+    ['Archive', '归档'],
+    ['Viewer', '查看器'],
     ['Preset', '预设'],
     ['Recent', '最近使用'],
     ['Rename', '重命名'],
@@ -686,6 +760,7 @@
     ['Submit', '提交'],
     ['System', '系统'],
     ['Value:', '当前值：'],
+    ['Version', '版本'],
     ['Window', '窗口'],
     ['After', '分组后'],
     ['Close', '关闭'],
@@ -714,28 +789,38 @@
     ['None', '无'],
     ['Open', '打开'],
     ['Plan', '套餐计划'],
+    ['Tool', '工具'],
+    ['Type', '输入'],
     ['Quit', '退出'],
     ['Read', '读取'],
     ['Skip', '跳过'],
-    ['Slow', '慢'],
+    ['Pane', '窗格'],
+    ['More', '更多'],
     ['View', '视图'],
     ['Wide', '宽'],
     ['Add', '添加'],
     ['App', '应用'],
     ['Low', '低'],
+    ['Pin', '固定'],
     ['now', '刚刚'],
     ['Now', '当前'],
     ['Off', '关闭'],
     ['Ran', '已运行'],
     ['Run', '运行'],
     ['Use', '使用'],
-    ['Go', '转到'],
+    ['Go to', '转到'],
+    ['Go To', '转到'],
     ['On', '开启'],
   ]);
 
   // 根据长度倒序排序
   const sortedPhrases = Array.from(phrases.entries()).sort((a, b) => b[0].length - a[0].length);
 
+  // 小写词汇索引，便于精准匹配大小写差异
+  const lowerPhrases = new Map();
+  for (const [k, v] of phrases.entries()) {
+    lowerPhrases.set(k.toLowerCase(), v);
+  }
 
   // 词条正则缓存
   const regexCache = new Map();
@@ -749,6 +834,88 @@
       regexCache.set(source, cached);
     }
     return cached;
+  }
+
+  // 精准独立词汇匹配（支持快捷键与末尾标点），防止短词在长句中误伤
+  function matchExactPhrase(trimmed) {
+    if (phrases.has(trimmed)) return phrases.get(trimmed);
+    const low = trimmed.toLowerCase();
+    if (lowerPhrases.has(low)) return lowerPhrases.get(low);
+
+    // 快捷键: 如 Save (Ctrl+S) 或 Save (⌘S)
+    const scMatch = trimmed.match(/^(.+?)\s*\((Ctrl|Cmd|Alt|Shift|⌘|⌥|⇧|⌃)\+?([^)]*)\)$/i);
+    if (scMatch) {
+      const prefix = scMatch[1].trim();
+      if (phrases.has(prefix)) return phrases.get(prefix) + ` (${scMatch[2]}${scMatch[3] ? '+' + scMatch[3] : ''})`;
+      if (lowerPhrases.has(prefix.toLowerCase())) return lowerPhrases.get(prefix.toLowerCase()) + ` (${scMatch[2]}${scMatch[3] ? '+' + scMatch[3] : ''})`;
+    }
+    // 常见标点：冒号、省略号、问号、感叹号
+    const puncMatch = trimmed.match(/^(.+?)([:：\?？!！…]+|\.{3,})$/);
+    if (puncMatch) {
+      const prefix = puncMatch[1].trim();
+      if (phrases.has(prefix)) return phrases.get(prefix) + puncMatch[2];
+      if (lowerPhrases.has(prefix.toLowerCase())) return lowerPhrases.get(prefix.toLowerCase()) + puncMatch[2];
+    }
+    return null;
+  }
+
+  // 智能体任务动态状态栏（例如：Exploring files, running commands ⌵）
+  function translateAgentProgress(str) {
+    if (!str) return null;
+    const clean = str.trim().replace(/\s*[⌵▼▾ˇ⌄\u2304\u25be\u25bc\u25bd]\s*$/, '').trim();
+    const verbMap = {
+      exploring: '正在探索', explored: '已探索',
+      editing: '正在编辑', edited: '已编辑',
+      running: '正在运行', ran: '已运行',
+      searching: '正在搜索', searched: '已搜索',
+      reading: '正在读取', read: '已读取'
+    };
+    const nounMap = {
+      file: '文件', files: '文件',
+      folder: '文件夹', folders: '文件夹',
+      command: '命令', commands: '命令',
+      artifact: '产物', artifacts: '产物',
+      search: '搜索', searches: '搜索',
+      task: '任务', tasks: '任务',
+      page: '网页', pages: '网页',
+      image: '图片', images: '图片',
+      action: '操作', actions: '操作'
+    };
+    const unitMap = {
+      file: '个', files: '个',
+      folder: '个', folders: '个',
+      command: '个', commands: '个',
+      artifact: '个', artifacts: '个',
+      search: '次', searches: '次',
+      task: '个', tasks: '个',
+      page: '个', pages: '个',
+      image: '张', images: '张',
+      action: '项', actions: '项'
+    };
+
+    const partRegex = /^(exploring|explored|editing|edited|running|ran|searching|searched|reading|read)\s*(?:(\d+)\s+)?(files?|folders?|commands?|artifacts?|searches?|tasks?|pages?|images?|actions?)$/i;
+
+    const parts = clean.split(/\s*,\s*/);
+    if (parts.length === 0) return null;
+
+    const translatedParts = [];
+    for (const part of parts) {
+      const m = part.trim().match(partRegex);
+      if (!m) return null;
+      const v = verbMap[m[1].toLowerCase()] || m[1];
+      const count = m[2];
+      const nounKey = m[3].toLowerCase();
+      const n = nounMap[nounKey] || m[3];
+      const unit = unitMap[nounKey] || '个';
+      if (count !== undefined) {
+        translatedParts.push(`${v} ${count} ${unit}${n}`);
+      } else {
+        translatedParts.push(`${v}${n}`);
+      }
+    }
+
+    const trailingSuffix = str.endsWith(clean) ? '' : str.slice(str.indexOf(clean) + clean.length);
+    return translatedParts.join('，') + trailingSuffix;
   }
 
   function formatRelativeTime(str) {
@@ -804,6 +971,10 @@
     [/Worked for (\d+)\s*s\b/gi, '已工作 $1 秒'],
     [/Worked for (\d+)\s*m\b/gi, '已工作 $1 分钟'],
     [/Worked for (\d+)\s*h\b/gi, '已工作 $1 小时'],
+    [/Thought for (\d+)\s*s\b/gi, '已思考 $1 秒'],
+    [/Thought for (\d+)\s*m\b/gi, '已思考 $1 分钟'],
+    [/Thought for (\d+)\s*h\b/gi, '已思考 $1 小时'],
+    [/Fold lines (\d+)-(\d+)/g, '折叠第 $1-$2 行'],
     [/(\d+)\s*minutes?\s*ago\b/gi, '$1 分钟前'],
     [/(\d+)\s*hours?\s*ago\b/gi, '$1 小时前'],
     [/(\d+)\s*days?\s*ago\b/gi, '$1 天前'],
@@ -823,6 +994,8 @@
     [/(\d+(?:\.\d+)?)% of the customization budget is available\./g, '自定义预算还剩 $1%。'],
     [/(\d+)\s*agents running/g, '$1 个代理正在运行'],
     [/See all \((\d+)\)/g, '查看全部 ($1)'],
+    [/Modified in (\d+)\s*(?:projects?|项目)/gi, '已在 $1 个项目中自定义'],
+    [/^(\d+)\s*projects?$/i, '$1 个项目'],
     [/Show (\d+)\s*breakdowns?/gi, '显示 $1 个明细'],
     [/No more older messages, showing (\d+) of (\d+)/g, '没有更早的消息了，显示 $1 / $2'],
     [/showing (\d+) of (\d+)/gi, '显示 $1 / $2'],
@@ -856,6 +1029,7 @@
     [/^Allow (.+)$/g, '允许 $1'],
     // 动态选项与操作
     [/^(.+)\s+options$/g, '$1 选项'],
+    [/(\b(?:Overview|Review|Terminal|Console|Output|Problems|Debug)\b|[^\x00-\xff]+)\s+tab\b/gi, '$1 标签页'],
     [/(?:刷新|Refresh)\s*MCP\s*servers?/gi, '刷新 MCP 服务器'],
     [/\btokens\)/gi, 'Token)'],
     // 量词与时间单位补齐
@@ -874,22 +1048,37 @@
     return value.replace(pattern, target);
   }
 
-  // 核心翻译流水线：优先纯静态最长匹配，再处理动态变量，最后后置微调
+  // 核心翻译流水线：精准完全匹配优先 -> 动态进度栏 -> 长句及复合短语子串 -> 动态变量规则
   function translate(value) {
     if (!value || !/[A-Za-z]/.test(value)) return value;
-    let next = value;
+    const trimmed = value.trim();
 
-    // 1. 优先使用纯静态精准词典（最长匹配优先）
-    for (const [source, target] of sortedPhrases) {
-      next = replacePhrase(next, source, target);
+    // 1. 精准完全匹配（独立按钮、菜单项、短词、快捷键与标点，彻底杜绝短词在未知长句中途破坏）
+    const exact = matchExactPhrase(trimmed);
+    if (exact) {
+      return value.replace(trimmed, exact);
     }
 
-    // 2. 处理动态变量与模板规则
+    // 2. 动态任务进度栏解析（例如 "Exploring files, running commands ⌵"）
+    const progress = translateAgentProgress(value);
+    if (progress) {
+      return progress;
+    }
+
+    // 3. 长句及复合短语子串匹配（仅长度 > 15 的词条允许子串替换，短词禁止中途单点替换）
+    let next = value;
+    for (const [source, target] of sortedPhrases) {
+      if (source.length > 15) {
+        next = replacePhrase(next, source, target);
+      }
+    }
+
+    // 4. 处理动态变量与模板规则
     for (const [pattern, target] of dynamicPatterns) {
       next = next.replace(pattern, target);
     }
 
-    // 3. 后置微调与插值收尾
+    // 5. 后置微调与插值收尾
     for (const [pattern, target] of patternsPost) {
       next = next.replace(pattern, target);
     }
@@ -919,8 +1108,13 @@
       }
     }
 
-    // 跳过会话历史
-    const historyItem = element.closest('.past-conversations, .conversation-list, .history-list, .conversations-list, [data-testid="history-list"], [data-testid="past-conversations"], .conversation-item, .convo-item, .history-item, [class*="history-item"], [class*="convo-item"]');
+    // 跳过会话标题与面包屑（用户或模型生成的自定义会话名）
+    if (element.closest('[data-testid="breadcrumb-segment"], nav [class*="breadcrumb"]')) {
+      return true;
+    }
+
+    // 跳过侧边栏会话历史列表中的会话名称
+    const historyItem = element.closest('[data-testid="conversation-row-sidebar"], [data-cascade-id], .past-conversations, .conversation-list, .history-list, .conversations-list, [data-testid="history-list"], [data-testid="past-conversations"], .conversation-item, .convo-item, .history-item, [class*="history-item"], [class*="convo-item"]');
     if (historyItem) {
       const isActionBtn = element.closest('button[aria-label], button[title], [class*="delete"], [class*="pin"], [class*="archive"]');
       if (!isActionBtn) return true;

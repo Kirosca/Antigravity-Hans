@@ -115,13 +115,22 @@ func isTargetPage(url, appName string) bool {
 		strings.Contains(urlLower, "localhost")
 }
 
+// truncateRunes 按字符（而非字节）截断，避免把中文标题截断成半个 UTF-8 字符
+func truncateRunes(s string, max int) string {
+	runes := []rune(s)
+	if len(runes) <= max {
+		return s
+	}
+	if max <= 3 {
+		return string(runes[:max])
+	}
+	return string(runes[:max-3]) + "..."
+}
+
 // getTargetTitle 获取页面标题
 func getTargetTitle(title, rawURL string) string {
 	if title != "" {
-		if len(title) > 100 {
-			return title[:97] + "..."
-		}
-		return title
+		return truncateRunes(title, 100)
 	}
 	urlLower := strings.ToLower(rawURL)
 	if strings.HasPrefix(urlLower, "data:text/html") {
@@ -136,11 +145,8 @@ func getTargetTitle(title, rawURL string) string {
 	if strings.Contains(urlLower, "127.0.0.1") || strings.Contains(urlLower, "localhost") {
 		return "应用主页面"
 	}
-	if len(rawURL) > 100 {
-		return rawURL[:97] + "..."
-	}
 	if rawURL != "" {
-		return rawURL
+		return truncateRunes(rawURL, 100)
 	}
 	return "主窗口"
 }
@@ -301,26 +307,46 @@ func WaitForPort(port int, maxWaitMs int) bool {
 	return false
 }
 
-// Run 启动并监视目标应用
-func Run(cfg AppConfig, overlaySource string) {
+// Run 启动并监视目标应用。
+// interactive 为 false 时（--nogui / 后台启动）不会询问安装实例，
+// 否则在控制台被隐藏的快捷方式下会永久挂起。
+func Run(cfg AppConfig, overlaySource string, interactive bool) {
+	// 单实例保护：重复双击快捷方式会让多个监视器叠加注入
+	release, ok := acquireMonitorLock(cfg)
+	if !ok {
+		return
+	}
+	defer release()
+
 	injectedSet := make(map[string]bool)
 	var mu sync.Mutex
 
-	app := DetectApp(cfg)
-
-	// 已开启调试端口直接进入监视
-	targets := CheckPort(app.Port)
-	if len(targets) > 0 {
-		fmt.Printf("检测到 %s 调试端口已开启，直接进入监视模式...\n", app.Name)
+	// 候选端口里已有调试端点（多半是上一次由本工具启动、仍在运行的实例）：
+	// 直接复用该端口进入监视，不要把它杀掉重启
+	if port, found := findCDPPort(cfg.Port); found {
+		cfg.Port = port
+		fmt.Printf("检测到 %s 调试端口 %d 已开启，直接进入监视模式...\n", cfg.Name, port)
 		Watch(cfg, overlaySource, injectedSet, &mu)
 		return
 	}
+
+	app := DetectApp(cfg)
 
 	// 进程未开启调试端口则重启
 	if app.Running {
 		fmt.Printf("[提示] 检测到 %s 正在运行，但未开启调试端口。正在重新拉起...\n", app.Name)
 		KillProcess(cfg)
 		time.Sleep(1500 * time.Millisecond)
+	}
+
+	// 首选端口落在系统临时端口区间内，可能被别的进程占用，这里挑一个空闲的
+	if port, ok := selectFreePort(cfg.Port); ok {
+		if port != cfg.Port {
+			fmt.Printf("[提示] 首选端口 %d 已被占用，本次改用 %d。\n", cfg.Port, port)
+		}
+		cfg.Port = port
+	} else {
+		fmt.Printf("[警告] 候选端口 %v 均被占用，仍尝试使用 %d。\n", candidatePorts(cfg.Port), cfg.Port)
 	}
 
 	// 确定启动路径
@@ -338,18 +364,30 @@ func Run(cfg AppConfig, overlaySource string) {
 			for i, p := range app.AllPaths {
 				fmt.Printf(" [%d] %s\n", i+1, p)
 			}
-			var choice int
-			fmt.Printf("请选择 (1-%d, 默认 1): ", len(app.AllPaths))
-			fmt.Scan(&choice)
-			if choice < 1 || choice > len(app.AllPaths) {
-				choice = 1
+			if !interactive {
+				// 控制台不可见时绝不能等待输入：直接取第一个实例
+				fmt.Printf("[提示] 非交互模式，自动选择第 1 个安装实例。\n")
+				targetPath = app.AllPaths[0]
+			} else {
+				var choice int
+				fmt.Printf("请选择 (1-%d, 默认 1): ", len(app.AllPaths))
+				fmt.Scan(&choice)
+				if choice < 1 || choice > len(app.AllPaths) {
+					choice = 1
+				}
+				targetPath = app.AllPaths[choice-1]
 			}
-			targetPath = app.AllPaths[choice-1]
 		}
 	}
 
+	// 启动前最后一道校验：路径必须确实是目标应用的可执行文件
+	if !isExpectedExecutable(targetPath, cfg) {
+		fmt.Printf("[错误] 启动路径校验未通过（期望可执行文件 %s）: %s\n", cfg.Exe, targetPath)
+		return
+	}
+
 	// 启动并监视
-	fmt.Printf("正在以调试模式启动 %s: %s ...\n", app.Name, targetPath)
+	fmt.Printf("正在以调试模式启动 %s: %s (调试端口 %d) ...\n", app.Name, targetPath, app.Port)
 	if err := LaunchWithDebug(targetPath, app.Port); err != nil {
 		fmt.Printf("[错误] 启动失败: %v\n", err)
 		return
@@ -413,24 +451,16 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 	}
 
 	// 建立调试连接
-	dialer := websocket.DefaultDialer
-	conn, _, err := dialer.Dial(wsURL, nil)
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	if err != nil {
 		fmt.Printf("[错误] 建立 CDP 事件长连接失败: %v\n", err)
 		return
 	}
-	defer conn.Close()
+	// 必须用闭包捕获变量：重连后 conn 会被替换，退出时要关闭的是当前那条连接
+	defer func() { _ = conn.Close() }()
 
 	// 开启 Target 发现
-	discoverCmd := map[string]interface{}{
-		"id":     1,
-		"method": "Target.setDiscoverTargets",
-		"params": map[string]bool{
-			"discover": true,
-		},
-	}
-	discoverJSON, _ := json.Marshal(discoverCmd)
-	if err := conn.WriteMessage(websocket.TextMessage, discoverJSON); err != nil {
+	if err := enableTargetDiscovery(conn); err != nil {
 		fmt.Printf("[错误] 发送 Target.setDiscoverTargets 失败: %v\n", err)
 		return
 	}
@@ -564,16 +594,25 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
-			// 连接断开确认应用状态
+			_ = conn.Close()
 			fmt.Printf("与 %s 调试端口的连接断开，正在确认应用状态...\n", cfg.Name)
-			time.Sleep(1500 * time.Millisecond)
-			app := DetectApp(cfg)
-			if !app.Running {
-				fmt.Printf("检测到 %s 已退出，结束汉化监视。\n", cfg.Name)
+
+			// 就地重连，不再递归调用 Watch：
+			// 递归会让上一层的 Watchdog 巡检 goroutine 一直存活（defer 要等内层返回才执行），
+			// 每断线一次就多一个每 2 秒轮询的巡检器，最终自己把自己的调试端口打成连接风暴。
+			newConn, ok := reconnectBrowser(cfg, 1500*time.Millisecond)
+			if !ok {
+				fmt.Printf("结束 %s 的汉化监视。\n", cfg.Name)
 				return
 			}
-			Watch(cfg, overlaySource, injectedSet, mu)
-			return
+			conn = newConn
+			fmt.Println("[成功] 已重新建立汉化监视连接。")
+
+			// 断线期间新开的页面由巡检器兜底，这里再补一次主动初检
+			for _, it := range CheckPort(cfg.Port) {
+				injectIfMatch(it, it.URL, "主动初检")
+			}
+			continue
 		}
 
 		var notif CDPNotification
@@ -610,5 +649,68 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 
 			injectIfMatch(t, info.URL, "事件驱动")
 		}
+	}
+}
+
+// reconnectTimeout 是断线后持续重连的最长时间，超过则认为应用已不再处于调试模式
+const reconnectTimeout = 3 * time.Minute
+
+// enableTargetDiscovery 开启 Target 事件发现
+func enableTargetDiscovery(conn *websocket.Conn) error {
+	discoverCmd := map[string]interface{}{
+		"id":     1,
+		"method": "Target.setDiscoverTargets",
+		"params": map[string]bool{
+			"discover": true,
+		},
+	}
+	discoverJSON, _ := json.Marshal(discoverCmd)
+	return conn.WriteMessage(websocket.TextMessage, discoverJSON)
+}
+
+// nextBackoff 逐步放大重连间隔，避免密集重试
+func nextBackoff(d time.Duration) time.Duration {
+	d *= 2
+	if d > 5*time.Second {
+		return 5 * time.Second
+	}
+	return d
+}
+
+// reconnectBrowser 在长连接断开后重新建立浏览器级连接。
+// 应用已退出或超过 reconnectTimeout 仍未成功时返回 false，由调用方结束监视。
+func reconnectBrowser(cfg AppConfig, delay time.Duration) (*websocket.Conn, bool) {
+	deadline := time.Now().Add(reconnectTimeout)
+	backoff := delay
+
+	for {
+		time.Sleep(backoff)
+		if !DetectApp(cfg).Running {
+			fmt.Printf("检测到 %s 已退出。\n", cfg.Name)
+			return nil, false
+		}
+		if time.Now().After(deadline) {
+			fmt.Printf("[提示] 已重连 %s 超过 %s 仍未成功，应用可能不再以调试模式运行，请重新用本工具启动。\n", cfg.Name, reconnectTimeout)
+			return nil, false
+		}
+
+		wsURL, err := getBrowserWSURL(cfg.Port)
+		if err != nil || wsURL == "" {
+			backoff = nextBackoff(backoff)
+			continue
+		}
+		conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		if err != nil {
+			fmt.Printf("[警告] 重新连接 CDP 失败: %v（%s 后重试）\n", err, nextBackoff(backoff))
+			backoff = nextBackoff(backoff)
+			continue
+		}
+		if err := enableTargetDiscovery(conn); err != nil {
+			_ = conn.Close()
+			fmt.Printf("[警告] 重新开启 Target 发现失败: %v\n", err)
+			backoff = nextBackoff(backoff)
+			continue
+		}
+		return conn, true
 	}
 }
