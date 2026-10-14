@@ -105,24 +105,6 @@ antigravity-hans --trust-external-overlay  # 显式信任同目录外部汉化�
 ```bash
 ./build.sh    # 交叉编译 macOS / Windows 三个平台到 dist/
 ```
-
-提交前建议本地跑一遍与 CI 相同的检查：
-
-```bash
-gofmt -l .                                     # 应无输出
-go vet ./...
-go test ./...
-go test -race ./...                            # macOS / Linux
-node --test tools/overlay.test.mjs             # 权限目标、词库更新和过滤范围回归
-node tools/lint-overlay.mjs                    # 词库体检：死条目 / 重复键 / 权限词反转
-go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
-```
-
-> 修改词库后务必执行 `node tools/lint-overlay.mjs`：它会拦下“键里混入反斜杠导致永远匹配不到”
-> 这类肉眼看不出来的问题（历史上曾有 11 条因此失效）。
-
-CI 在 Ubuntu、macOS 和 Windows 上执行原生测试与漏洞扫描；发布作业等待这些检查全部通过，并附带 SHA-256 校验清单。
-
 ---
 
 ## 更新说明
@@ -145,6 +127,7 @@ CI 在 Ubuntu、macOS 和 Windows 上执行原生测试与漏洞扫描；发布�
 **词库与质量**
 
 - 修复历史失效词条及沙盒确认框漏译，适配普通版 Antigravity 2.23.0，词库扩充至 1300 条。
+- 尽可能调整了中英文夹杂的问题，修复了目前可见的中英文互相参杂的问题。
 - 新增词库体检脚本 `tools/lint-overlay.mjs`，并接入 CI。
 - Go 工具链升级到 1.26.9（1.25 已停止支持），新增 CI 质量门禁：gofmt / go vet / go test / 词库 lint / govulncheck。
 - 补充权限目标保留、词库版本替换、动态文案与跳过区域回归测试。
