@@ -13,9 +13,13 @@ permissions:
   contents: read
 
 jobs:
+  quality:
+    uses: ./.github/workflows/ci.yml
+
   release:
     name: 编译并发布
     runs-on: ubuntu-latest
+    needs: quality
     permissions:
       contents: write # 仅发布作业需要写权限
 
@@ -27,6 +31,7 @@ jobs:
         id: version
         run: |
           VERSION=$(cat VERSION | tr -d '[:space:]')
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]] || { echo '无效版本号'; exit 1; }
           echo "tag=${VERSION}" >> $GITHUB_OUTPUT
           echo "版本号: ${VERSION}"
 
@@ -35,13 +40,6 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-
-      - name: 发版前质量门禁
-        run: |
-          test -z "$(gofmt -l .)"
-          go vet ./...
-          go test -count=1 ./...
-          node tools/lint-overlay.mjs antigravity-hans-overlay.js
 
       - name: 编译 macOS ARM64（Apple Silicon）
         env:
@@ -71,7 +69,10 @@ jobs:
             -o dist/antigravity-hans-windows-amd64.exe .
 
       - name: 查看产物
-        run: ls -lh dist/
+        working-directory: dist
+        run: |
+          sha256sum antigravity-hans-macos-arm64 antigravity-hans-macos-amd64 antigravity-hans-windows-amd64.exe > SHA256SUMS
+          ls -lh
 
       - name: 发布到 GitHub Releases
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
@@ -101,5 +102,6 @@ jobs:
             dist/antigravity-hans-macos-arm64
             dist/antigravity-hans-macos-amd64
             dist/antigravity-hans-windows-amd64.exe
+            dist/SHA256SUMS
           draft: false
           prerelease: false

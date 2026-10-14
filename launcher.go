@@ -13,6 +13,7 @@ func LaunchWithDebug(appPath string, port int) error {
 	args := []string{
 		appPath,
 		fmt.Sprintf("--remote-debugging-port=%d", port),
+		"--remote-debugging-address=127.0.0.1",
 	}
 
 	// 默认不再传入 --remote-allow-origins=*：
@@ -35,33 +36,31 @@ func LaunchWithDebug(appPath string, port int) error {
 	return cmd.Start()
 }
 
-// gracefulQuitTimeout 是等待应用正常退出的最长时间，超时后才会强制结束。
+// gracefulQuitTimeout 是等待应用正常退出的最长时间；取消或超时均中止重启。
 // 各平台可在自己的 init 中调整（见 quit_windows.go）。
 var gracefulQuitTimeout = 8 * time.Second
 
 // KillProcess 结束目标 App 进程并确保完全退出。
 // macOS 上会先请求应用正常退出（触发保存 / 热退出流程），避免直接 SIGKILL
-// 让用户丢失正在进行的会话与未落盘内容；超时后才退回强制结束。
-func KillProcess(cfg AppConfig) {
-	if requestGracefulQuit(cfg) {
-		fmt.Printf("正在请求 %s 正常退出（保存状态）...\n", cfg.Name)
-		if waitForAppExit(cfg, gracefulQuitTimeout) {
-			fmt.Printf("[成功] %s 已正常退出。\n", cfg.Name)
-			return
-		}
-		fmt.Printf("[提示] %s 未在 %s 内退出，改为强制结束。\n", cfg.Name, gracefulQuitTimeout)
+// 让用户丢失正在进行的会话与未落盘内容。
+func KillProcess(cfg AppConfig) bool {
+	fmt.Printf("正在请求 %s 正常退出（保存状态）...\n", cfg.Name)
+	if err := quitAndWait(cfg, requestGracefulQuit, waitForAppExit); err != nil {
+		fmt.Printf("[提示] 已中止重启: %v。请保存内容并手动退出应用后重试。\n", err)
+		return false
 	}
+	fmt.Printf("[成功] %s 已正常退出。\n", cfg.Name)
+	return true
+}
 
-	fmt.Printf("正在强制结束已运行的 %s 实例...\n", cfg.Name)
-	KillApp(cfg)
-	// 等待所有残留进程彻底退出，避免 SingleInstanceLock 抢占导致新实例自杀
-	for i := 0; i < 30; i++ {
-		time.Sleep(100 * time.Millisecond)
-		app := DetectApp(cfg)
-		if !app.Running {
-			break
-		}
+func quitAndWait(cfg AppConfig, request func(AppConfig) error, wait func(AppConfig, time.Duration) bool) error {
+	if err := request(cfg); err != nil {
+		return fmt.Errorf("正常退出请求取消、被拒绝或失败: %w", err)
 	}
+	if !wait(cfg, gracefulQuitTimeout) {
+		return fmt.Errorf("应用未在 %s 内退出", gracefulQuitTimeout)
+	}
+	return nil
 }
 
 // waitForAppExit 在超时时间内轮询等待应用完全退出

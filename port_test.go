@@ -69,11 +69,11 @@ func TestFindCDPPortDetectsEndpoint(t *testing.T) {
 				return
 			}
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = fmt.Fprint(w, `[{"id":"t1","type":"page","title":"主窗口","url":"https://127.0.0.1:1/app","webSocketDebuggerUrl":"ws://127.0.0.1:1/devtools/page/t1"}]`)
+			_, _ = fmt.Fprintf(w, `[{"id":"t1","type":"page","title":"主窗口","url":"https://127.0.0.1:1/app","webSocketDebuggerUrl":"ws://127.0.0.1:%d/devtools/page/t1"}]`, base)
 		}))
 	}()
 
-	port, found := findCDPPort(base)
+	port, found := findCDPPortWithOwner(AppConfig{Name: AppNormal.Name, Port: base}, func(port int) bool { return port == base })
 	if !found {
 		t.Fatalf("应识别出 %d 上的 CDP 端点", base)
 	}
