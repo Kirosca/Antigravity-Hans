@@ -8,9 +8,9 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const source = fs.readFileSync(new URL('../antigravity-hans-overlay.js', import.meta.url), 'utf8');
-const context = { window: { addEventListener() {}, removeEventListener() {} }, document: { readyState: 'loading' } };
+const context = { window: { addEventListener() {}, removeEventListener() {}, location: { pathname: '/', href: 'http://127.0.0.1/' } }, document: { readyState: 'loading' } };
 vm.createContext(context);
-vm.runInContext(source.replace('  function run() {', '  globalThis.translateForTest = translate; globalThis.translateElementForTest = translateElement;\n  function run() {'), context);
+vm.runInContext(source.replace('  function run() {', '  globalThis.translateForTest = translate; globalThis.translateElementForTest = translateElement; globalThis.translateNodeForTest = translateNode;\n  function run() {'), context);
 const translate = context.translateForTest;
 
 test('updated overlays replace their observer and use the requested fingerprint', () => {
@@ -35,10 +35,16 @@ test('permission targets survive both initial translation and observer reprocess
       `Requesting permission to running this command outside the sandbox ${target}`,
       `Requesting permission to read access to this path ${target}`,
       `Requesting permission to using this MCP tool ${target}`,
+      `Requesting permission to run (unsandboxed) ${target}`,
+      `Requesting permission to read ${target}`,
       `Agent needs permission to execute JavaScript on ${target}`,
       `Agent needs permission to act on ${target}`,
+      `Yes, save rule for '${target}' in this conversation`,
       `Yes, save rule for '${target}' in this project`,
+      `Yes, and always allow '${target}' in this conversation`,
       `Yes, and always allow '${target}' in this workspace`,
+      `Conflicts with your configured Ask permission: ${target}`,
+      `Requires manual confirmation: ${target}`,
       `Allow ${target}`,
     ];
     for (const input of inputs) {
@@ -59,6 +65,12 @@ test('2.23.0 normal app controls and safety policies are localized', () => {
     ['Manage Hooks', '管理钩子'], ['Sandbox Allow Network', '允许沙盒访问网络'],
     ['Agent always asks for review.', '智能体始终请求审核。'], ['Reject Step', '拒绝此步骤'],
     ['New Window', '新建窗口'], ['Select branch', '选择分支'],
+    ['Vetted (Preview)', '安全审核（预览）'], ['Automatic Check for Updates', '自动检查更新'],
+    ['Browser Actuation Permissions', '浏览器操作权限'], ['Terms of Service & Data Use', '服务条款与数据使用'],
+    ['Allow read access to this path?', '允许读取此路径？'], ['Save rule to always allow running this command?', '保存规则以始终允许运行此命令？'],
+    ['Explored, ran command', '已探索，已运行命令'], ['Explored, edited files', '已探索，已编辑文件'],
+    ['Worked for 1h 20m', '已工作 1 小时 20 分钟'], ['Stopped after 45s', '工作 45 秒后停止'],
+    ['Thinking for 3s', '已思考 3 秒'], ['3 files changed', '3 个文件已更改'],
   ]) assert.equal(translate(input), expected);
 });
 
@@ -90,6 +102,18 @@ test('attribute mutations inside skipped code/user content are not translated', 
   const element = { nodeType: 1, closest(selector) { return selector.includes('script, style') ? this : null; }, getAttribute() { return 'Code Search'; }, setAttribute() { altered = true; } };
   context.translateElementForTest(element);
   assert.equal(altered, false);
+
+  const attrs = new Map([['placeholder', '(tell the agent what to do instead)'], ['aria-label', 'Edit permission target']]);
+  const textarea = {
+    nodeType: 1,
+    parentElement: { closest() { return null; } },
+    closest() { return null; },
+    getAttribute(name) { return attrs.get(name); },
+    setAttribute(name, val) { attrs.set(name, val); },
+  };
+  context.translateElementForTest(textarea);
+  assert.equal(attrs.get('placeholder'), '（告诉智能体改做什么）');
+  assert.equal(attrs.get('aria-label'), '编辑权限目标');
 });
 
 test('lint catches untranslated words and permission polarity reversals', () => {

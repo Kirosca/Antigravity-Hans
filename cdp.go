@@ -680,7 +680,7 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 }
 
 // reconnectTimeout 是断线后持续重连的最长时间，超过则认为应用已不再处于调试模式
-const reconnectTimeout = 3 * time.Minute
+const reconnectTimeout = 30 * time.Second
 
 // enableTargetDiscovery 开启 Target 事件发现
 func enableTargetDiscovery(conn *websocket.Conn) error {
