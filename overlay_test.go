@@ -25,8 +25,10 @@ func TestVerifyExternalOverlay(t *testing.T) {
 	}
 
 	good := write("good.js", content, 0o600)
-	if err := verifyExternalOverlay(good, content); err != nil {
+	if err := verifyExternalOverlay(good, content); !IsWindows && err != nil {
 		t.Fatalf("合规脚本不应被拒绝: %v", err)
+	} else if IsWindows && err == nil {
+		t.Fatal("Windows 必须显式信任外部脚本，不能依赖 Unix 权限位")
 	}
 
 	worldWritable := write("world.js", content, 0o666)

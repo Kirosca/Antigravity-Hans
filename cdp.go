@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,6 +21,7 @@ type CDPTarget struct {
 	Title                string `json:"title"`
 	URL                  string `json:"url"`
 	WebSocketDebuggerURL string `json:"webSocketDebuggerUrl"`
+	DebugPort            int    `json:"-"`
 }
 
 // cdpIDCounter CDP 消息 ID 计数器
@@ -39,6 +40,9 @@ func cdpCall(conn *websocket.Conn, method string, params map[string]interface{})
 		return nil, err
 	}
 
+	if err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		return nil, err
+	}
 	if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
 		return nil, fmt.Errorf("发送 CDP 消息失败: %w", err)
 	}
@@ -104,15 +108,17 @@ func cdpResponseError(resp map[string]interface{}, method string) error {
 }
 
 // isTargetPage 判断目标是否为需汉化页面
-func isTargetPage(url, appName string) bool {
-	urlLower := strings.ToLower(url)
+func isTargetPage(rawURL, appName string) bool {
+	urlLower := strings.ToLower(rawURL)
 	if strings.Contains(strings.ToLower(appName), "ide") {
 		return strings.Contains(urlLower, "workbench.html") ||
 			strings.Contains(urlLower, "workbench-jetski-agent.html")
 	}
-	return strings.HasPrefix(urlLower, "data:text/html") ||
-		strings.Contains(urlLower, "127.0.0.1") ||
-		strings.Contains(urlLower, "localhost")
+	if strings.HasPrefix(urlLower, "data:text/html") {
+		return true
+	}
+	u, err := url.Parse(rawURL)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.User == nil && isLoopbackHost(u.Hostname())
 }
 
 // truncateRunes 按字符（而非字节）截断，避免把中文标题截断成半个 UTF-8 字符
@@ -153,23 +159,8 @@ func getTargetTitle(title, rawURL string) string {
 
 // CheckPort 获取可注入的调试目标列表
 func CheckPort(port int) []CDPTarget {
-	url := fmt.Sprintf("http://127.0.0.1:%d/json/list", port)
-	client := &http.Client{Timeout: 500 * time.Millisecond}
-	resp, err := client.Get(url)
-	if err != nil {
-		return nil
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return nil
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil
-	}
-
 	var targets []CDPTarget
-	if err := json.Unmarshal(body, &targets); err != nil {
+	if err := readCDPJSON(port, "/json/list", &targets); err != nil {
 		return nil
 	}
 
@@ -179,7 +170,13 @@ func CheckPort(port int) []CDPTarget {
 	}
 	var result []CDPTarget
 	for _, t := range targets {
-		if !ignoredTypes[t.Type] && t.WebSocketDebuggerURL != "" {
+		if validated, err := validateCDPWebSocket(t.WebSocketDebuggerURL, port); !ignoredTypes[t.Type] && err == nil {
+			ws, _ := url.Parse(validated)
+			if !strings.HasPrefix(ws.Path, "/devtools/page/") || path.Base(ws.Path) != t.ID {
+				continue
+			}
+			t.WebSocketDebuggerURL = validated
+			t.DebugPort = port
 			result = append(result, t)
 		}
 	}
@@ -187,10 +184,14 @@ func CheckPort(port int) []CDPTarget {
 }
 
 // checkTargetInjectedOnConn 检查当前连接对应的页面文档是否已注入补丁
-func checkTargetInjectedOnConn(conn *websocket.Conn) (bool, error) {
+func checkTargetInjectedOnConn(conn *websocket.Conn, fingerprint ...string) (bool, error) {
 	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	expression := "window.__antigravityZhPatchInstalled === true && window.__observedDocument === document"
+	if len(fingerprint) > 0 {
+		expression += fmt.Sprintf(" && window.__antigravityZhPatchFingerprint === %q", fingerprint[0])
+	}
 	resp, err := cdpCall(conn, "Runtime.evaluate", map[string]interface{}{
-		"expression":    "window.__antigravityZhPatchInstalled === true && window.__observedDocument === document",
+		"expression":    expression,
 		"returnByValue": true,
 	})
 	if err != nil {
@@ -214,8 +215,7 @@ func EnsureTargetInjected(target CDPTarget, overlaySource string) (bool, bool, e
 		return false, true, fmt.Errorf("webSocketDebuggerUrl 为空")
 	}
 
-	dialer := websocket.DefaultDialer
-	conn, resp, err := dialer.Dial(target.WebSocketDebuggerURL, nil)
+	conn, resp, err := dialCDP(target.WebSocketDebuggerURL, target.DebugPort)
 	if err != nil {
 		// 对端返回 404/500（如 Splash 页面关闭后 No such target id）或明确拒绝，代表目标已销毁，无需重试
 		isPermanent := false
@@ -229,17 +229,31 @@ func EnsureTargetInjected(target CDPTarget, overlaySource string) (bool, bool, e
 	defer conn.Close()
 
 	// 1. 在同一个连接上先复核是否已完成注入
-	injected, err := checkTargetInjectedOnConn(conn)
+	fingerprint := overlayFingerprint(overlaySource)
+	injected, err := checkTargetInjectedOnConn(conn, fingerprint)
 	if err == nil && injected {
 		return true, false, nil
 	}
+	legacyResp, legacyErr := cdpCall(conn, "Runtime.evaluate", map[string]interface{}{
+		"expression":    "window.__antigravityZhPatchInstalled === true && window.__observedDocument === document && typeof window.__antigravityZhPatchCleanup !== 'function'",
+		"returnByValue": true,
+	})
+	if legacyErr != nil {
+		return false, false, legacyErr
+	}
+	if result, ok := legacyResp["result"].(map[string]interface{}); ok {
+		if value, ok := result["result"].(map[string]interface{}); ok && value["value"] == true {
+			return false, true, fmt.Errorf("页面仍运行没有清理入口的旧版汉化脚本，请重新加载此窗口以更新词库")
+		}
+	}
+	injectionSource := fmt.Sprintf("window.__antigravityZhPatchRequestedFingerprint = %q;\n%s", fingerprint, overlaySource)
 
 	// 2. 启用 Page 域支持
 	_, _ = cdpCall(conn, "Page.enable", nil)
 
 	// 3. 注册新文档自动注入脚本（页面内部跳转、刷新后均自动生效）
 	if _, err := cdpCall(conn, "Page.addScriptToEvaluateOnNewDocument", map[string]interface{}{
-		"source": overlaySource,
+		"source": injectionSource,
 	}); err != nil {
 		return false, false, fmt.Errorf("监听页面刷新失败: %w", err)
 	}
@@ -247,7 +261,7 @@ func EnsureTargetInjected(target CDPTarget, overlaySource string) (bool, bool, e
 	// 4. 当前页面立即执行注入
 	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 	evalResp, err := cdpCall(conn, "Runtime.evaluate", map[string]interface{}{
-		"expression":   overlaySource,
+		"expression":   injectionSource,
 		"awaitPromise": false,
 	})
 	if err != nil {
@@ -258,7 +272,7 @@ func EnsureTargetInjected(target CDPTarget, overlaySource string) (bool, bool, e
 	}
 
 	// 5. 在同一连接上直接复核安装状态
-	verified, _ := checkTargetInjectedOnConn(conn)
+	verified, _ := checkTargetInjectedOnConn(conn, fingerprint)
 	if !verified {
 		return false, false, fmt.Errorf("注入后页面未确认汉化脚本已安装")
 	}
@@ -267,18 +281,17 @@ func EnsureTargetInjected(target CDPTarget, overlaySource string) (bool, bool, e
 }
 
 // IsTargetInjected 检测页面当前文档是否真正已注入汉化补丁
-func IsTargetInjected(target CDPTarget) bool {
+func IsTargetInjected(target CDPTarget, fingerprint ...string) bool {
 	if target.WebSocketDebuggerURL == "" {
 		return false
 	}
-	dialer := websocket.DefaultDialer
-	conn, _, err := dialer.Dial(target.WebSocketDebuggerURL, nil)
+	conn, _, err := dialCDP(target.WebSocketDebuggerURL, target.DebugPort)
 	if err != nil {
 		return false
 	}
 	defer conn.Close()
 
-	injected, _ := checkTargetInjectedOnConn(conn)
+	injected, _ := checkTargetInjectedOnConn(conn, fingerprint...)
 	return injected
 }
 
@@ -314,6 +327,7 @@ func Run(cfg AppConfig, overlaySource string, interactive bool) {
 	// 单实例保护：重复双击快捷方式会让多个监视器叠加注入
 	release, ok := acquireMonitorLock(cfg)
 	if !ok {
+		focusRunningNormalApp(cfg)
 		return
 	}
 	defer release()
@@ -323,9 +337,10 @@ func Run(cfg AppConfig, overlaySource string, interactive bool) {
 
 	// 候选端口里已有调试端点（多半是上一次由本工具启动、仍在运行的实例）：
 	// 直接复用该端口进入监视，不要把它杀掉重启
-	if port, found := findCDPPort(cfg.Port); found {
+	if port, found := findCDPPort(cfg); found {
 		cfg.Port = port
 		fmt.Printf("检测到 %s 调试端口 %d 已开启，直接进入监视模式...\n", cfg.Name, port)
+		focusRunningNormalApp(cfg)
 		Watch(cfg, overlaySource, injectedSet, &mu)
 		return
 	}
@@ -335,7 +350,9 @@ func Run(cfg AppConfig, overlaySource string, interactive bool) {
 	// 进程未开启调试端口则重启
 	if app.Running {
 		fmt.Printf("[提示] 检测到 %s 正在运行，但未开启调试端口。正在重新拉起...\n", app.Name)
-		KillProcess(cfg)
+		if !KillProcess(cfg) {
+			return
+		}
 		time.Sleep(1500 * time.Millisecond)
 	}
 
@@ -346,7 +363,8 @@ func Run(cfg AppConfig, overlaySource string, interactive bool) {
 		}
 		cfg.Port = port
 	} else {
-		fmt.Printf("[警告] 候选端口 %v 均被占用，仍尝试使用 %d。\n", candidatePorts(cfg.Port), cfg.Port)
+		fmt.Printf("[错误] 候选端口 %v 均被占用，已中止启动。\n", candidatePorts(cfg.Port))
+		return
 	}
 
 	// 确定启动路径
@@ -404,29 +422,20 @@ func Run(cfg AppConfig, overlaySource string, interactive bool) {
 
 // getBrowserWSURL 获取浏览器级 WebSocket 调试 URL
 func getBrowserWSURL(port int) (string, error) {
-	url := fmt.Sprintf("http://127.0.0.1:%d/json/version", port)
-	client := &http.Client{Timeout: 500 * time.Millisecond}
-	resp, err := client.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("HTTP 状态码错误: %d", resp.StatusCode)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
 	var versionInfo map[string]string
-	if err := json.Unmarshal(body, &versionInfo); err != nil {
+	if err := readCDPJSON(port, "/json/version", &versionInfo); err != nil {
 		return "", err
 	}
 	wsURL := versionInfo["webSocketDebuggerUrl"]
-	if wsURL == "" {
-		return "", fmt.Errorf("webSocketDebuggerUrl 为空")
+	validated, err := validateCDPWebSocket(wsURL, port)
+	if err != nil {
+		return "", err
 	}
-	return wsURL, nil
+	u, _ := url.Parse(validated)
+	if !strings.HasPrefix(u.Path, "/devtools/browser/") {
+		return "", fmt.Errorf("不是浏览器级调试地址")
+	}
+	return validated, nil
 }
 
 // Watch 基于 CDP 监听并自动注入
@@ -451,7 +460,7 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 	}
 
 	// 建立调试连接
-	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	conn, _, err := dialCDP(wsURL, cfg.Port)
 	if err != nil {
 		fmt.Printf("[错误] 建立 CDP 事件长连接失败: %v\n", err)
 		return
@@ -470,6 +479,9 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 
 	// 目标注入逻辑
 	injectionPending := make(map[string]bool)
+	verificationPending := make(map[string]bool)
+	permanentWarnings := make(map[string]bool)
+	fingerprint := overlayFingerprint(overlaySource)
 	injectIfMatch := func(target CDPTarget, rawURL, triggerType string) {
 		if target.ID == "" || !isTargetPage(rawURL, cfg.Name) {
 			return
@@ -508,6 +520,15 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 
 				// 若目标已被 Electron 销毁（如 Splash 首屏页面关闭），属于永久性状态，直接终止重试
 				if isPermanent {
+					if err != nil {
+						mu.Lock()
+						shown := permanentWarnings[target.ID]
+						permanentWarnings[target.ID] = true
+						mu.Unlock()
+						if !shown {
+							fmt.Printf("[提示] %v (ID: %s)\n", err, target.ID)
+						}
+					}
 					return
 				}
 
@@ -549,7 +570,10 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 
 					mu.Lock()
 					alreadyInjected := injectedSet[t.ID]
-					isPending := injectionPending[t.ID]
+					isPending := injectionPending[t.ID] || verificationPending[t.ID]
+					if alreadyInjected && !isPending {
+						verificationPending[t.ID] = true
+					}
 					mu.Unlock()
 
 					// 兜底自愈：若发现符合条件的存活页面尚未注入且未在注入队列中，立即自动补刀
@@ -558,7 +582,8 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 					} else if alreadyInjected && !isPending {
 						// 复核已注入页面：若用户刷新导致文档重置（__observedDocument 失效），重新补刀
 						go func(target CDPTarget) {
-							if !IsTargetInjected(target) {
+							defer func() { mu.Lock(); delete(verificationPending, target.ID); mu.Unlock() }()
+							if !IsTargetInjected(target, fingerprint) {
 								mu.Lock()
 								delete(injectedSet, target.ID)
 								mu.Unlock()
@@ -627,6 +652,7 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 				mu.Lock()
 				delete(injectedSet, targetID)
 				delete(injectionPending, targetID)
+				delete(permanentWarnings, targetID)
 				mu.Unlock()
 			}
 			continue
@@ -645,6 +671,7 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 				Title:                info.Title,
 				URL:                  info.URL,
 				WebSocketDebuggerURL: fmt.Sprintf("ws://127.0.0.1:%d/devtools/page/%s", cfg.Port, info.TargetID),
+				DebugPort:            cfg.Port,
 			}
 
 			injectIfMatch(t, info.URL, "事件驱动")
@@ -653,7 +680,7 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 }
 
 // reconnectTimeout 是断线后持续重连的最长时间，超过则认为应用已不再处于调试模式
-const reconnectTimeout = 3 * time.Minute
+const reconnectTimeout = 30 * time.Second
 
 // enableTargetDiscovery 开启 Target 事件发现
 func enableTargetDiscovery(conn *websocket.Conn) error {
@@ -665,6 +692,9 @@ func enableTargetDiscovery(conn *websocket.Conn) error {
 		},
 	}
 	discoverJSON, _ := json.Marshal(discoverCmd)
+	if err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		return err
+	}
 	return conn.WriteMessage(websocket.TextMessage, discoverJSON)
 }
 
@@ -693,13 +723,17 @@ func reconnectBrowser(cfg AppConfig, delay time.Duration) (*websocket.Conn, bool
 			fmt.Printf("[提示] 已重连 %s 超过 %s 仍未成功，应用可能不再以调试模式运行，请重新用本工具启动。\n", cfg.Name, reconnectTimeout)
 			return nil, false
 		}
+		if port, found := findCDPPort(cfg); !found || port != cfg.Port {
+			backoff = nextBackoff(backoff)
+			continue
+		}
 
 		wsURL, err := getBrowserWSURL(cfg.Port)
 		if err != nil || wsURL == "" {
 			backoff = nextBackoff(backoff)
 			continue
 		}
-		conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		conn, _, err := dialCDP(wsURL, cfg.Port)
 		if err != nil {
 			fmt.Printf("[警告] 重新连接 CDP 失败: %v（%s 后重试）\n", err, nextBackoff(backoff))
 			backoff = nextBackoff(backoff)

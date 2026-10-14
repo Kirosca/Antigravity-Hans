@@ -1,10 +1,520 @@
 (() => {
   if (typeof window === 'undefined') return;
-  if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document) return;
+  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.23.0-20261014-r2';
+  if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document && window.__antigravityZhPatchFingerprint === fingerprint) return;
+  const updating = window.__antigravityZhPatchInstalled === true && window.__observedDocument === document;
+  if (typeof window.__antigravityZhPatchCleanup === 'function') window.__antigravityZhPatchCleanup();
   window.__antigravityZhPatchInstalled = true;
   window.__observedDocument = document;
+  window.__antigravityZhPatchFingerprint = fingerprint;
+  let observer;
+  let cancelled = false;
+  const pendingTimers = new Set();
+  window.__antigravityZhPatchCleanup = () => {
+    cancelled = true;
+    observer?.disconnect();
+    window.removeEventListener('DOMContentLoaded', run);
+    for (const timer of pendingTimers) clearTimeout(timer);
+    pendingTimers.clear();
+  };
 
   const phrases = new Map([
+    // 普通版 2.23.0：来自本机实际加载的 main.js，未新增 IDE 专属词条。
+    ['Allow the agent to automatically view and edit files outside the current workspace. Use with caution: this gives the agent access to additional potentially-relevant information, but also allows the agent to access credential files, secrets, and other files outside of the workspace that could be targeted in prompt injection attacks or other exploits by malicious actors.', '允许智能体自动查看和编辑当前工作区之外的文件。请谨慎使用：这会让智能体访问更多可能相关的信息，但也会允许其访问凭据文件、机密以及工作区外的其他文件，这些文件可能成为提示词注入攻击或其他恶意利用的目标。'],
+    ['Give each Best of N fork its own clone of your Git repository instead of a copy-on-write overlay. Each fork is then a real repository, so commits it makes are kept when you choose it as the winner. Forks take longer to create, and the wait grows with the size of your repository. See go/jetski-best-of-n.', '为每个 Best of N 分支提供独立的 Git 仓库克隆，而非写时复制叠加层。每个分支都是真实仓库，因此在您将其选为优胜方案后会保留其提交记录。创建分支耗时更长，且等待时间随仓库体积增加。'],
+    ['The agent never asks for confirmation before executing terminal commands (except those in the Deny list). This provides the agent with the maximum ability to operate over long periods without intervention, but also has the highest risk of the agent executing an unsafe terminal command.', '智能体在执行终端命令前从不请求确认（拒绝列表中的命令除外）。这能让智能体在无需干预的情况下最大程度地长时间自主运行，但也具有执行不安全终端命令的最高风险。'],
+    ['Let the agent use browser tools to open URLs, read web pages, and interact with browser content. This gives the agent access to important (and often critical) knowledge and methods of validation, but any browser integration does increase exposure to external malicious parties for security exploits.', '允许智能体使用浏览器工具打开 URL、读取网页并与浏览器内容交互。这能让智能体获取重要知识和验证方式，但任何浏览器集成都可能增加遭受外部恶意利用的风险。'],
+    ['Slightly modify your UI to ensure more consistent demos. This is only recommended for demo purposes. In most cases, you can run "Antigravity: Start Demo Mode" and "Antigravity: Stop Demo Mode" to control this switch and update your ~/.gemini/antigravity data directory.', '微调界面以确保演示效果更加一致。仅建议用于演示目的。大多数情况下，您可以运行“Antigravity: Start Demo Mode”和“Antigravity: Stop Demo Mode”来控制此开关并更新 ~/.gemini/antigravity 数据目录。'],
+    ['Give each Best of N fork a full clone of your workspace, including its local commit history. Choosing a winner then gives your workspace that fork\'s state, so the commits it made are kept. Forks take longer to create than the default CitC clone. See go/jetski-best-of-n.', '为每个 Best of N 分支提供包含本地提交历史的完整工作区克隆。选出优胜方案后，工作区将采用该分支的状态并保留其提交记录。创建耗时比默认 CitC 克隆更长。'],
+    ['Try out early-stage features before they ship. These may be changed or removed at any time. These features are experimental, and we make no guarantees about performance or functionality.', '在正式发布前试用早期功能。这些功能可能随时更改或移除，属于实验性质，我们不对其性能或功能作任何保证。'],
+    ['Adds an Autonomous Mode switch to the modes dropdown below the input box. Turns sent with it on run non-interactively: the agent does not ask questions or request new permissions.', '在输入框下方的模式下拉菜单中添加“自主模式”开关。开启后发送的轮次将以非交互方式运行：智能体不会提问或请求新权限。'],
+    ['Terminal commands automatically proceed inside the sandbox. A command that needs to leave the sandbox proceeds only if an agent judges it reversible, and otherwise requests review.', '终端命令会在沙盒内自动继续执行。需要脱离沙盒的命令仅在智能体判断其可逆时才会继续执行，否则会请求审核。'],
+    ['The agent never asks for review. This maximizes the autonomy of the agent, but also has the highest risk of the agent operating over unsafe or injected artifact content.', '智能体从不请求审核。这会最大程度提高智能体的自主性，但也具有因不安全或被注入恶意内容的产物而执行操作的最高风险。'],
+    ['Use the IDE\'s shell integration to detect and report terminal command execution. When disabled, the agent uses its own shell. Restart the application for this to take effect.', '使用 IDE 的 Shell 集成来检测并报告终端命令执行情况。禁用时，智能体将使用自带 Shell。重启应用后生效。'],
+    ['Enforce settings that prevent the agent from autonomously running targeted exploits and require human review for all agent actions. Visit antigravity.google/docs/strict-mode for details.', '强制启用安全设置，防止智能体自主运行针对性利用程序，并要求所有智能体操作均经过人工审核。'],
+    ['Enable fine-grained GitHub permissions and define the org, repository, and resource-level access the agent is allowed to use.', '启用细粒度 GitHub 权限，并定义允许智能体使用的组织、仓库和资源级访问权限。'],
+    ['Note: A change to this setting will only apply to new messages sent to the agent. In-progress responses will use the previous setting value.', '注意：对此设置的更改仅适用于发送给智能体的新消息。正在进行的回复仍使用之前的设置值。'],
+    ['Recommended: 64,000\u2013256,000 tokens. Actual compaction threshold may differ since max output tokens are subtracted.', '建议范围：64,000\u2013256,000 个 Token。由于会减去最大输出 Token 数，实际压缩阈值可能有所不同。'],
+    ['AI Credits are used when you\'ve exceeded your model quota. Keep track of your current AI Credits in the', '当模型额度用尽时将使用 AI 积分。您可以在以下位置查看当前 AI 积分：'],
+    ['No models are available for your current project or account. Please check your project settings and IAM permissions.', '当前项目或账户没有可用的模型。请检查您的项目设置和 IAM 权限。'],
+    ['Autonomous mode active: the agent works independently and does not ask questions or request new permissions.', '自主模式已开启：智能体将独立工作，不会提问或请求新权限。'],
+    ['The agent always asks for confirmation before executing terminal commands (except those in the Allow list).', '智能体在执行终端命令前始终请求确认（允许列表中的命令除外）。'],
+    ['Terminal command automatically proceeds if the command runs inside the sandbox. Otherwise, it requests review.', '如果终端命令在沙盒内运行，则会自动继续执行；否则会请求审核。'],
+    ['A shell setup script run before every command the agent executes in this project. Overrides the global script.', '智能体在此项目中执行每条命令前运行的 Shell 初始化脚本，会覆盖全局脚本。'],
+    ['A nickname for identifying this application in the companion website. Changing this will restart the connection.', '用于在配套网站中标识此应用的昵称。更改此项将重新建立连接。'],
+    ['The agent works with autonomy-enhancing features and does not ask questions or request new permissions.', '智能体使用自主增强功能运行，不会提问或请求新权限。'],
+    ['This conversation grew too large, so the history before this point may be missing or incomplete.', '此对话内容过长，因此该节点之前的历史记录可能缺失或不完整。'],
+    ['Select the workspace type that will be used for new conversations started with the New Workspace option.', '选择通过“新建工作区”选项开始新对话时使用的工作区类型。'],
+    ['This conversation is also open in another app. Sending messages from both may cause conflicts.', '此对话同时在另一个应用中打开。从两端发送消息可能会导致冲突。'],
+    ['Opens in the in-app preview pane. Some sites don\'t support iframe embedding and may not load.', '在应用内预览窗格中打开。部分网站不支持内嵌框架，可能无法加载。'],
+    ['These allowed domain rules are set by your organization\'s administrator and cannot be removed.', '这些允许的域名规则由您所在组织的管理员设置，无法移除。'],
+    ['Continue "Explain and Fix" actions in the current conversation instead of starting a new one.', '在当前对话中继续执行“解释并修复”操作，而不是开启新对话。'],
+    ['Predict the location of your next edit and navigate you there with a tab keypress.', '预测您下一次编辑的位置，并在按下 Tab 键时导航至该处。'],
+    ['VCS used when creating a new workspace, including workspaces generated based off your initial prompt.', '创建新工作区（包括根据初始提示词生成的工作区）时使用的 VCS。'],
+    ['A label for this computer when you connect from another device. Changing it reconnects.', '从其他设备连接时用于标识此电脑的名称。更改后将重新连接。'],
+    ['When enabled, the agent will include default customizations, including default skills.', '启用后，智能体将包含默认自定义项（包括默认技能）。'],
+    ['Allow Gemini to notify you when the agent needs your attention or completes a task.', '允许 Gemini 在智能体需要您关注或完成任务时向您发送通知。'],
+    ['Choose whether to be notified when the agent needs your attention or completes a task.', '选择是否在智能体需要您关注或完成任务时收到通知。'],
+    ['This conversation is not on disk. Delete it to remove it from your sidebar.', '此对话不在磁盘上。将其删除即可从侧边栏移除。'],
+    ['Allow reading workflow runs (list, view, watch) across the whole repository.', '允许读取整个仓库的工作流运行记录（列表、查看、监听）。'],
+    ['Setup may take over 5 minutes. Please keep this screen open during setup.', '配置可能需要 5 分钟以上，请在此过程中保持此界面打开。'],
+    ['The conversation could not be loaded because its data was not found.', '无法加载该对话，因为未找到其数据。'],
+    ['Check pending conversations in the last 3 days that require action from me.', '检查最近 3 天内需要我处理的待办对话。'],
+    ['Toggle if a confirmation is shown when using the "Reload Window" button.', '使用“重新加载窗口”按钮时是否显示确认提示。'],
+    ['When enabled, sandboxed commands are allowed to make network requests.', '启用后，允许沙盒中的命令发起网络请求。'],
+    ['Configure workspace-specific permissions, resources, and customizations.', '配置工作区专属的权限、资源和自定义项。'],
+    ['An error occurred while submitting your feedback. Please try again.', '提交反馈时出错，请重试。'],
+    ['A shell setup script run before every command the agent executes.', '智能体执行每条命令前运行的 Shell 初始化脚本。'],
+    ['Commands the agent can run outside the sandbox in this workspace.', '智能体在此工作区中可在沙盒外运行的命令。'],
+    ['Sync newly created JJ worktrees to head when starting a conversation.', '开始对话时将新建的 JJ 工作树同步到最新提交。'],
+    ['The conversation was compacted to fit within the context window.', '对话已压缩以适应上下文窗口。'],
+    ['Ask a quick question without interrupting the main conversation.', '在不打断主对话的情况下快速提问。'],
+    ['Allow opening pull requests and grant access to specific PRs.', '允许创建拉取请求并授予对特定 PR 的访问权限。'],
+    ['Thank you! Your feedback has been submitted successfully.', '感谢您的反馈！您的反馈已成功提交。'],
+    ['Allow creating issues and grant access to specific issues.', '允许创建议题并授予对特定议题的访问权限。'],
+    ['This setting cannot be changed while strict mode is enabled.', '启用严格模式时无法更改此设置。'],
+    ['Credential valid (> 1 week remaining). Click to refresh TDAT', '凭据有效（剩余超过 1 周）。点击刷新 TDAT'],
+    ['Credential expires in less than 1 week. Click to refresh TDAT', '凭据将在 1 周内过期。点击刷新 TDAT'],
+    ['This subagent was killed and can no longer be messaged.', '此子智能体已终止，无法再向其发送消息。'],
+    ['Replace the default browser right-click menu with quick actions.', '将默认浏览器右键菜单替换为快捷操作菜单。'],
+    ['Select a model using the model selector in the input box', '使用输入框中的模型选择器选择模型'],
+    ['Terminal commands the agent can execute in this workspace.', '智能体在此工作区中可执行的终端命令。'],
+    ['View archived in the sidebar (Display options menu).', '可在侧边栏（显示选项菜单）中查看已归档内容。'],
+    ['This option is disabled while strict mode is enabled.', '启用严格模式时此选项已禁用。'],
+    ['Include default customizations, such as default skills.', '包含默认自定义项，例如默认技能。'],
+    ['Save rule to always allow a one-time administrator (UAC) elevation?', '保存规则以始终允许一次性管理员 (UAC) 提权？'],
+    ['Save rule to always allow running this command outside the sandbox?', '保存规则以始终允许在沙盒外运行此命令？'],
+    ['Choose between the Default and Project 4K experience.', '在默认体验与 Project 4K 体验之间选择。'],
+    ['The full developer experience with code and tooling.', '包含代码与开发工具的完整开发者体验。'],
+    ['Research, writing, and everyday tasks, without code.', '适用于研究、写作与日常任务（不含代码工具）。'],
+    ['Paths the agent can modify inside this workspace.', '智能体在此工作区中可修改的路径。'],
+    ['Timed out waiting for the update to be installed.', '等待安装更新超时。'],
+    ['There may be agents or background tasks running.', '可能仍有智能体或后台任务正在运行。'],
+    ['Paths the agent can read inside this workspace.', '智能体在此工作区中可读取的路径。'],
+    ['URLs the agent can read or open in this workspace.', '智能体在此工作区中可读取或打开的 URL。'],
+    ['URLs the agent can actuate on in this workspace.', '智能体在此工作区中可执行操作的 URL。'],
+    ['Configure the default width of markdown artifacts.', '配置 Markdown 产物的默认宽度。'],
+    ['Manage your conversations from the companion website.', '从配套网站管理您的对话。'],
+    ['Configure hooks that run on agent lifecycle events.', '配置在智能体生命周期事件上运行的钩子。'],
+    ['Save rule to always allow executing actions on this URL?', '保存规则以始终允许在此 URL 上执行操作？'],
+    ['Any error messages seen when trying to log in', '尝试登录时看到的任何错误信息'],
+    ['This setting is managed by your organization.', '此设置由您所在的组织管理。'],
+    ['This option is disabled by your organization.', '此选项已被您所在的组织禁用。'],
+    ['Absolute path to the Chrome/Chromium executable', 'Chrome 可执行文件的绝对路径'],
+    ['Project 4K interface without developer tooling.', '不含开发者工具的 Project 4K 界面。'],
+    ['Credential expired. Click to refresh TDAT', '凭据已过期。点击刷新 TDAT'],
+    ['Save rule to always allow read access to this path?', '保存规则以始终允许读取此路径？'],
+    ['Save rule to always allow write access to this path?', '保存规则以始终允许写入此路径？'],
+    ['Save rule to always allow running this command?', '保存规则以始终允许运行此命令？'],
+    ['Save rule to always allow using this MCP tool?', '保存规则以始终允许使用此 MCP 工具？'],
+    ['Save rule to always allow access to this resource?', '保存规则以始终允许访问此资源？'],
+    ['Save rule to always allow reading this URL?', '保存规则以始终允许读取此 URL？'],
+    ['Requesting a one-time administrator (UAC) elevation', '正在请求一次性管理员 (UAC) 提权'],
+    ['Allow a one-time administrator (UAC) elevation?', '允许一次性管理员 (UAC) 提权？'],
+    ['Allow running this command outside the sandbox?', '允许在沙盒外运行此命令？'],
+    ['Manage fine-grained permissions for GitHub.', '管理 GitHub 的细粒度权限。'],
+    ['Choose the experience that fits how you work.', '选择适合您工作方式的体验模式。'],
+    ['Cancel questionnaire and stop the agent', '取消问卷并停止智能体'],
+    ['Allow executing actions on this URL?', '允许在此 URL 上执行操作？'],
+    ['Organization Allowed Domains (Read-Only)', '组织允许的域名（只读）'],
+    ['Organization MCP Allowlist (Read-Only)', '组织 MCP 允许列表（只读）'],
+    ['AI Credits Used to Generate Response', '已使用 AI 积分生成回复'],
+    ['The agent always asks for review.', '智能体始终请求审核。'],
+    ['Use full VCS clones for Best of N', '为 Best of N 使用完整 VCS 克隆'],
+    ['Use full Git clones for Best of N', '为 Best of N 使用完整 Git 克隆'],
+    ['Connecting to language server...', '正在连接语言服务...'],
+    ['User cancelled agent execution.', '用户已取消智能体执行。'],
+    ['Click to learn more about sources', '点击了解更多关于来源的信息'],
+    ['Open search in external browser', '在外部浏览器中打开搜索'],
+    ['Allow read access to this path?', '允许读取此路径？'],
+    ['Allow write access to this path?', '允许写入此路径？'],
+    ['Allow using this MCP tool?', '允许使用此 MCP 工具？'],
+    ['Allow access to this resource?', '允许访问此资源？'],
+    ['Allow reading this URL?', '允许读取此 URL？'],
+    ['The full developer experience.', '完整的开发者体验。'],
+    ['Set the volume of agent sounds.', '设置智能体提示音的音量。'],
+    ['Configure GitHub access policies.', '配置 GitHub 访问策略。'],
+    ['This command ran in the sandbox.', '此命令已在沙盒中运行。'],
+    ['Folder has more than 1000 files', '文件夹包含超过 1000 个文件'],
+    ['Browser Actuation Permissions', '浏览器操作权限'],
+    ['Requires manual confirmation.', '需要手动确认。'],
+    ['Are you sure you want to delete this conversation? This action cannot be undone.', '确定要删除此对话吗？此操作无法撤销。'],
+    ['Are you sure you want to delete the workspace', '确定要删除工作区'],
+    ['Are you sure you want to delete this hook card?', '确定要删除此钩子卡片吗？'],
+    ['Are you sure you want to delete this handler?', '确定要删除此处理程序吗？'],
+    ['No active terminals. Click + to create one.', '暂无活动终端。点击 + 创建一个。'],
+    ['Are you sure you want to delete the', '确定要删除'],
+    ['Are you sure you want to delete', '确定要删除'],
+    ['? This action cannot be undone.', '？此操作无法撤销。'],
+    ['? This will remove it from your MCP configuration.', '？这将把它从您的 MCP 配置中移除。'],
+    ['? This removes it from your config directory.', '？这会将它从您的配置目录中移除。'],
+    ['Are you sure you want to quit?', '确定要退出吗？'],
+    ['Automatic Check for Updates', '自动检查更新'],
+    ['Terms of Service & Data Use', '服务条款与数据使用'],
+    ['Share Conversation (Preview)', '分享对话（预览）'],
+    ['Open with External Browser', '使用外部浏览器打开'],
+    ['Failed to rename conversation', '重命名对话失败'],
+    ['Failed to delete conversation', '删除对话失败'],
+    ['Failed to stop conversation', '停止对话失败'],
+    ['Failed to fork conversation', '创建分支对话失败'],
+    ['Failed to start conversation', '启动对话失败'],
+    ['Max Tokens Until Compaction', '触发压缩的最大 Token 数'],
+    ['e.g. "My Custom Gemini Model"', '例如“我的自定义 Gemini 模型”'],
+    ['Baseline model quota reached', '已达基础模型额度上限'],
+    ['Why did you choose this response?', '您为什么选择此回复？'],
+    ['Better instruction following', '指令遵循更准确'],
+    ['The other model hallucinated', '另一个模型出现了幻觉'],
+    ['Clearer writing & artifacts', '表述与产物更清晰'],
+    ['Skills and Rules Settings', '技能与规则设置'],
+    ['Skills Configuration Error:', '技能配置错误：'],
+    ['MCP Authentication Error:', 'MCP 身份验证错误：'],
+    ['Sidebar grouped by workspace', '侧边栏已按工作区分组'],
+    ['Sidebar grouped by project', '侧边栏已按项目分组'],
+    ['Updated sidebar grouping', '已更新侧边栏分组方式'],
+    ['Sync JJ Worktrees to Head', '将 JJ 工作树同步到最新提交'],
+    ['Default Cog Branch / Ref', '默认 Cog 分支 / 引用'],
+    ['Administrator access (UAC)', '管理员权限 (UAC)'],
+    ['Notification Preferences', '通知偏好设置'],
+    ['Markdown Artifact Width', 'Markdown 产物宽度'],
+    ['Don\'t show this for 2 days', '2 天内不再显示'],
+    ['No conversations available', '暂无可用对话'],
+    ['Open in external browser', '在外部浏览器中打开'],
+    ['Open in Built-in Browser', '在内置浏览器中打开'],
+    ['Discard unstaged changes', '放弃未暂存的更改'],
+    ['Other (write your answer)', '其他（输入您的回答）'],
+    ['Something else (optional)', '其他原因（可选）'],
+    ['Conversation unavailable', '对话不可用'],
+    ['Insufficient AI Credits', 'AI 积分不足'],
+    ['Agent execution failed.', '智能体执行失败。'],
+    ['Better solution & code', '方案与代码质量更好'],
+    ['More thorough research', '调研更全面深入'],
+    ['Search customizations...', '搜索自定义项...'],
+    ['Default Cog Repository', '默认 Cog 仓库'],
+    ['Default Workspace VCS', '默认工作区 VCS'],
+    ['No conversations found', '未找到对话'],
+    ['More feedback options', '更多反馈选项'],
+    ['Cancel Sending Message', '取消发送消息'],
+    ['Conversation Archived', '对话已归档'],
+    ['Pick at most 2 reasons', '最多选择 2 个原因'],
+    ['Plugin Operation Error:', '插件操作错误：'],
+    ['Copy Config File Path', '复制配置文件路径'],
+    ['Workspace Web Access', '工作区网页访问'],
+    ['Cancel questionnaire', '取消问卷'],
+    ['Open in Preview Pane', '在预览窗格中打开'],
+    ['Open in Preview Tab', '在预览标签页中打开'],
+    ['Error Loading Models', '加载模型出错'],
+    ['No Models Available', '暂无可用模型'],
+    ['Untracked (Unstaged)', '未跟踪（未暂存）'],
+    ['No updates available', '当前已是最新版本'],
+    ['Permission Settings', '权限设置'],
+    ['Permission Details', '权限详情'],
+    ['Workspace Creation', '工作区创建'],
+    ['GitHub Permissions', 'GitHub 权限'],
+    ['No background tasks', '无后台任务'],
+    ['No active terminals', '无活动终端'],
+    ['Revert file changes', '还原文件更改'],
+    ['At Mention Code Block', '@ 引用代码块'],
+    ['At mention code block', '@ 引用代码块'],
+    ['MCP Restart Error:', 'MCP 重启错误：'],
+    ['Custom Agent Error:', '自定义智能体错误：'],
+    ['Rename Conversation', '重命名对话'],
+    ['Local Permissions', '本地权限'],
+    ['Selection Actions', '选择操作'],
+    ['Vetted (Preview)', '安全审核（预览）'],
+    ['Proceed with Plan', '按计划继续'],
+    ['No answer provided', '未提供回答'],
+    ['Previous question', '上一题'],
+    ['Open in Side Pane', '在侧边窗格中打开'],
+    ['Toggle file diff', '切换文件差异视图'],
+    ['Delete MCP Server', '删除 MCP 服务器'],
+    ['Remove From Split', '从拆分视图中移除'],
+    ['Remove from Split', '从拆分视图中移除'],
+    ['Fork Conversation', '创建分支对话'],
+    ['Insert in Terminal', '插入到终端'],
+    ['Insert in terminal', '插入到终端'],
+    ['Group By Project', '按项目分组'],
+    ['Replace With New', '替换为新对话'],
+    ['Installed Skills', '已安装技能'],
+    ['Sign-in required', '需要登录'],
+    ['Allowed Domains', '允许的域名'],
+    ['GitHub Policies', 'GitHub 策略'],
+    ['Project options', '项目选项'],
+    ['Thought Process', '思考过程'],
+    ['Faster response', '响应速度更快'],
+    ['No file changes', '无文件更改'],
+    ['Add MCP Servers', '添加 MCP 服务器'],
+    ['Add MCP Server', '添加 MCP 服务器'],
+    ['Skills & Rules', '技能与规则'],
+    ['Delete Handler', '删除处理程序'],
+    ['Setup required', '需要配置'],
+    ['Added (Staged)', '已添加（已暂存）'],
+    ['Unstage change', '取消暂存更改'],
+    ['Merge Conflict', '合并冲突'],
+    ['Refresh Skills', '刷新技能'],
+    ['Refresh skills', '刷新技能'],
+    ['Delete Terminal', '删除终端'],
+    ['Table options', '表格选项'],
+    ['Agent options', '智能体选项'],
+    ['Next question', '下一题'],
+    ['Page contents', '页面内容'],
+    ['Manage Skills', '管理技能'],
+    ['Move to Group', '移至分组'],
+    ['Open Terminal', '打开终端'],
+    ['Delete comment', '删除评论'],
+    ['Show details', '显示详情'],
+    ['Chime volume', '提示音音量'],
+    ['Open Preview', '打开预览'],
+    ['Multi-select', '多选'],
+    ['Stage change', '暂存更改'],
+    ['Confirm Undo', '确认撤销'],
+    ['Undo To Here', '撤销到此处'],
+    ['Delete Skill', '删除技能'],
+    ['Rename Group', '重命名分组'],
+    ['Recent Files', '最近文件'],
+    ['Recent files', '最近文件'],
+    ['Setting up…', '正在配置…'],
+    ['Edit comment', '编辑评论'],
+    ['Edit Comment', '编辑评论'],
+    ['Stop Subagent', '停止子智能体'],
+    ['Stop subagent', '停止子智能体'],
+    ['Stop All Subagents', '停止全部子智能体'],
+    ['No subagents', '无子智能体'],
+    ['Thinking...', '思考中...'],
+    ['Loading...', '正在加载...'],
+    ['Yes, allow', '是，允许'],
+    ['UI Actions', '界面操作'],
+    ['Compacting', '正在压缩上下文'],
+    ['Models Tab', '模型标签页'],
+    ['Delete Hook', '删除钩子'],
+    ['+ Add Hook', '+ 添加钩子'],
+    ['Add Handler', '添加处理程序'],
+    ['Setting up', '正在配置'],
+    ['Cancel Step', '取消此步骤'],
+    ['Cancel step', '取消此步骤'],
+    ['View Diff', '查看差异'],
+    ['Installed', '已安装'],
+    ['Completed', '已完成'],
+    ['Try Again', '重试'],
+    ['Try again', '重试'],
+    ['Configure', '配置'],
+    ['Subagents', '子智能体'],
+    ['Terminals', '终端'],
+    ['View Logs', '查看日志'],
+    ['Full Logs', '完整日志'],
+    ['Nickname', '昵称'],
+    ['Contrast', '对比度'],
+    ['Thinking', '思考中'],
+    ['Continue', '继续'],
+    ['Modified', '已修改'],
+    ['Built In', '内置'],
+    ['Starting', '正在启动'],
+    ['Previous', '上一步'],
+    ['Validate', '验证'],
+    ['Overview', '概览'],
+    ['Commands', '命令'],
+    ['Comments', '评论'],
+    ['Updater', '更新程序'],
+    ['Skipped', '已跳过'],
+    ['Sources', '来源'],
+    ['Renamed', '已重命名'],
+    ['Discard', '放弃'],
+    ['Restore', '恢复'],
+    ['Running', '运行中'],
+    ['Stopped', '已停止'],
+    ['Pending', '等待中'],
+    ['Blocked', '已阻止'],
+    ['Confirm', '确认'],
+    ['Decline', '拒绝'],
+    ['Connect', '连接'],
+    ['Preview', '预览'],
+    ['Loading', '正在加载'],
+    ['Copied', '已复制'],
+    ['Commit', '提交'],
+    ['Source', '来源'],
+    ['Accept', '接受'],
+    ['Reject', '拒绝'],
+    ['Remove', '移除'],
+    ['Manage', '管理'],
+    ['Reload', '重新加载'],
+    ['Agents', '智能体'],
+    ['Output', '输出'],
+    ['Errors', '错误'],
+    ['Turbo', '极速'],
+    ['Quota', '额度'],
+    ['Sound', '声音'],
+    ['Amend', '修改提交'],
+    ['Ready', '就绪'],
+    ['Retry', '重试'],
+    ['Apply', '应用'],
+    ['Clear', '清除'],
+    ['Reset', '重置'],
+    ['Hooks', '钩子'],
+    ['Error', '错误'],
+    ['Auto', '自动'],
+    ['Deny', '拒绝'],
+    ['Allow', '允许'],
+    ['Block', '阻止'],
+    ['Slow', '慢'],
+    ['Fill', '铺满'],
+    ['Push', '推送'],
+    ['Undo', '撤销'],
+    ['Idle', '空闲'],
+    ['Done', '完成'],
+    ['Back', '返回'],
+    ['Next', '下一步'],
+    ['Stop', '停止'],
+    ['Logs', '日志'],
+    ['No', '否'],
+    ['A permanent Chief of Staff conversation in the sidebar that manages your other conversations: delegate tasks, check status, and read results from one place.', '在侧边栏保留一个统筹助手对话，集中管理其他对话：分派任务、检查状态并查看结果。'],
+    ['Agent never asks for review. This maximizes the autonomy of the Agent, but also has the highest risk of the Agent operating over unsafe or injected Artifact content.', '智能体从不请求审核。这会最大程度提高智能体的自主性，但也具有因不安全或被注入恶意内容的产物而执行操作的最高风险。'],
+    ["Specifies the agent's behavior when asking for review on artifacts, which are documents it creates to enable a richer conversation experience.", '指定智能体请求审核产物时的行为。产物是智能体创建的文档，用于提供更丰富的对话体验。'],
+    ['Give the agent awareness of lint errors created by its edits so it can fix them without explicit prompting.', '让智能体感知编辑引入的 Lint 错误，以便无需额外提示即可修复。'],
+    ['Automatically expand the Changes Overview toolbar when the agent finishes generating a response.', '智能体完成回复生成时，自动展开更改概览工具栏。'],
+    ['The agent asks for permission before executing commands matched by a deny list entry.', '智能体在执行匹配拒绝列表条目的命令前，会先请求权限。'],
+    ['The agent auto-executes commands matched by an allow list entry.', '智能体会自动执行匹配允许列表条目的命令。'],
+    ['Show browser notifications when your action is needed or execution finishes.', '需要你操作或执行结束时，显示浏览器通知。'],
+    ['Play a sound when the agent finishes generating a response.', '智能体完成回复生成时播放提示音。'],
+    ['Let the agent access past conversations to inform its responses.', '允许智能体参考历史对话来生成回复。'],
+    ['Open files in the background if the agent creates or edits them', '智能体创建或编辑文件时，在后台打开这些文件'],
+    ['Display and preserve intermediate thinking steps.', '显示并保留中间思考步骤。'],
+    ['Files modified by the agent in this conversation', '智能体在此对话中修改的文件'],
+    ['Allow sandboxed commands to make network requests.', '允许沙盒中的命令发起网络请求。'],
+    ['Run terminal commands with sandbox restrictions.', '在沙盒限制下运行终端命令。'],
+    ['Security agent decides if commands run.', '由安全智能体决定是否运行命令。'],
+    ['Automatically decide if commands run.', '自动判断是否运行命令。'],
+    ['Auto (Preview)', '自动（预览）'],
+    ['This page is going away soon', '此页面即将停用'],
+    ['Search conversations with', '点击左上角的'],
+    ['in the top left.', '可搜索对话。'],
+    ['View archived in the sidebar', '在侧边栏查看已归档内容'],
+    ['menu)', '菜单)'],
+    ['Mark All as Read', '全部标为已读'],
+    ['Workspace + Worktree', '工作区与工作树'],
+    ['Project + Worktree', '项目与工作树'],
+    ['Archived Only', '仅显示已归档'],
+    ['Custom Order', '自定义顺序'],
+    ['Only Unread', '仅显示未读'],
+    ['Last 7 days', '最近 7 天'],
+    ['Sort By', '排序方式'],
+    ['Display', '显示'],
+    ['Scheduled', '定时任务'],
+    ['Decorations', '标记'],
+    ['Agent always asks for review.', '智能体始终请求审核。'],
+    ['Open the agent panel on window reload', '窗口重新加载时打开智能体面板'],
+    ['Toggle Between Light/Dark Themes', '切换浅色或深色主题'],
+    ['Split Conversation Horizontally', '水平拆分对话'],
+    ['Split Conversation Vertically', '垂直拆分对话'],
+    ['Mark This Conversation as Unread', '将此对话标为未读'],
+    ['Mark This Conversation as Read', '将此对话标为已读'],
+    ['Include Jetski Default Customizations', '包含 Jetski 默认自定义项'],
+    ['Restart Main Language Server', '重启主语言服务'],
+    ['Failed to Generate Commit Message', '生成提交说明失败'],
+    ['Copy Conversation Markdown', '复制对话的 Markdown 内容'],
+    ['Select Previous Conversation', '选择上一个对话'],
+    ['Select Next Conversation', '选择下一个对话'],
+    ['Toggle Environment Selector', '切换环境选择器'],
+    ['Toggle Project Selector', '切换项目选择器'],
+    ['Toggle Overview Panel', '切换概览面板'],
+    ['Toggle File Viewer', '切换文件查看器'],
+    ['Customize Global Skills', '自定义全局技能'],
+    ['Default Customizations', '默认自定义项'],
+    ['Command Setup Script', '命令初始化脚本'],
+    ['Sandbox Allow Network', '允许沙盒访问网络'],
+    ['Enable Terminal Sandbox', '启用终端沙盒'],
+    ['Enable Notifications for Agent', '启用智能体通知'],
+    ['Enable Notifications', '启用通知'],
+    ['Agent terminated due to error', '智能体因错误而终止'],
+    ['Archive This Conversation', '归档此对话'],
+    ['Unpin This Conversation', '取消固定此对话'],
+    ['Pin This Conversation', '固定此对话'],
+    ['Rename This Conversation', '重命名此对话'],
+    ['Copy Conversation ID', '复制对话 ID'],
+    ['Find in Conversation', '在对话中查找'],
+    ['Search Conversations', '搜索对话'],
+    ['Download Diagnostics', '下载诊断信息'],
+    ['Open in Code Search', '在代码搜索中打开'],
+    ['Terminal: Add to Chat', '终端：添加到对话'],
+    ['Comment on Selection', '评论选中内容'],
+    ['Quote Selection', '引用选中内容'],
+    ['Equalize Split Panes', '均分拆分窗格'],
+    ['Close Terminal Tab', '关闭终端标签页'],
+    ['Go Forward in Pane', '在窗格中前进'],
+    ['Go Back in Pane', '在窗格中后退'],
+    ['Previous Aux Pane Tab', '上一个辅助窗格标签页'],
+    ['Next Aux Pane Tab', '下一个辅助窗格标签页'],
+    ['Collapse All Folders', '折叠所有文件夹'],
+    ['Expand All Folders', '展开所有文件夹'],
+    ['Copy error to clipboard', '将错误复制到剪贴板'],
+    ['Include unstaged changes', '包含未暂存的更改'],
+    ['Previous match (Shift+Enter)', '上一个匹配项 (Shift+Enter)'],
+    ['Next match (Enter)', '下一个匹配项 (Enter)'],
+    ['Clear search (Esc)', '清除搜索 (Esc)'],
+    ['Create Cloud Project', '创建云端项目'],
+    ['Group By Workspace', '按工作区分组'],
+    ['MCP Configuration Error:', 'MCP 配置错误：'],
+    ['MCP Install Error:', 'MCP 安装错误：'],
+    ['Confirm Window Reload', '确认重新加载窗口'],
+    ['Complete Onboarding Step', '完成引导步骤'],
+    ['Enable Demo Mode (Beta)', '启用演示模式（测试版）'],
+    ['Enter device name...', '输入设备名称…'],
+    ['Search workspaces...', '搜索工作区…'],
+    ['Agent Host Address', '智能体主机地址'],
+    ['Custom Context Menus', '自定义上下文菜单'],
+    ['Remove from Group', '从分组中移除'],
+    ['Move to New Group', '移至新分组'],
+    ['Continue Response', '继续回复'],
+    ['New Terminal Tab', '新建终端标签页'],
+    ['Split Terminal', '拆分终端'],
+    ['Open Commit Graph', '打开提交历史图'],
+    ['Staged Changes', '已暂存的更改'],
+    ['Branch Changes', '分支更改'],
+    ['Modified Files', '已修改的文件'],
+    ['Files Changed', '已更改的文件'],
+    ['Custom Agents', '自定义智能体'],
+    ['Chief of Staff', '统筹助手'],
+    ['Autonomous Mode', '自主模式'],
+    ['Agent Edits', '智能体编辑'],
+    ['Update Available', '有可用更新'],
+    ['Context Menus', '上下文菜单'],
+    ['UI Extensions', '界面扩展'],
+    ['Manage Hooks', '管理钩子'],
+    ['Strict Mode', '严格模式'],
+    ['Code Search', '代码搜索'],
+    ['Add to Chat', '添加到对话'],
+    ['MCP Servers', 'MCP 服务器'],
+    ['Select All', '全选'],
+    ['Accept Step', '接受此步骤'],
+    ['Reject Step', '拒绝此步骤'],
+    ['Open Launchpad', '打开启动台'],
+    ['New Window', '新建窗口'],
+    ['Close Tab', '关闭标签页'],
+    ['New Tab', '新建标签页'],
+    ['File Picker', '文件选择器'],
+    ['New Group', '新建分组'],
+    ['Split Right', '向右拆分'],
+    ['Split Down', '向下拆分'],
+    ['In Progress', '进行中'],
+    ['Input required', '需要输入'],
+    ['See Plans', '查看套餐'],
+    ['Select branch', '选择分支'],
+    ['Getting scripts...', '正在获取脚本…'],
+    ['Invalid Media', '无效的媒体文件'],
+    ['File explorer', '文件浏览器'],
+    ['Custom View', '自定义视图'],
+    ['Archive project', '归档项目'],
+    ['Copy value', '复制值'],
+    ['Copy Image', '复制图片'],
+    ['Commit succeeded', '提交成功'],
+    ['Amend succeeded', '修改提交成功'],
+    ['Push succeeded', '推送成功'],
+    ['Failed to Commit', '提交失败'],
+    ['Failed to Amend', '修改提交失败'],
+    ['Failed to Push', '推送失败'],
+    ['Zoom out (-)', '缩小 (-)'],
+    ['Reset zoom (0)', '重置缩放 (0)'],
+    ['Zoom in (+)', '放大 (+)'],
+    // 普通版 WSL 启动浮窗，来自 2.23.0 app.asar 的 wsl.js。
+    ['Downloading the Antigravity binary…', '正在下载 Antigravity 程序…'],
     ['Provides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.', '提供 Google Antigravity (AGY) 的全面指南、快速参考与站点地图，包括 Antigravity CLI (agy)、Antigravity 2.0、Antigravity IDE、Python SDK、斜杠命令、快捷键及自定义项（技能、规则、MCP、Sidecar）。当用户询问如何使用、配置或自定义 Antigravity、AGY、agy CLI、Antigravity IDE 或 Antigravity 2.0 时激活此技能。'],
     ['Within each group, models share a weekly limit and a 5-hour limit. Quota is consumed proportionally to the cost of the tokens. Thus, limits will last longer with shorter tasks or using more cost-effective models. The 5-hour limit smooths out aggregate demand to fairly distribute global capacity across all users, while your weekly limit is tied directly to your individual tier.', '在每个分组中，模型共享每周限额和 5 小时限额。额度的消耗与 Token 的成本成比例。因此，使用较短的任务或更具性价比的模型可以让限额维持更久。5 小时限额平滑了总体需求，以便在所有用户之间公平地分配全局容量，而您的每周限额则直接与您的个人套餐等级挂钩。'],
     ['When enabled, Agent can use browser tools to open URLs, read web pages, and interact with browser content. This allows the Agent access to important (and often critical) knowledge and methods of validation, but any browser integration does increase exposure to external malicious parties for security exploits.', '启用后，智能体可以使用浏览器工具打开 URL、读取网页并与浏览器内容交互。这能让智能体获取重要知识和验证方式，但任何浏览器集成都可能增加遭受外部恶意利用的风险。'],
@@ -893,7 +1403,7 @@
       action: '项', actions: '项'
     };
 
-    const partRegex = /^(exploring|explored|editing|edited|running|ran|searching|searched|reading|read)\s*(?:(\d+)\s+)?(files?|folders?|commands?|artifacts?|searches?|tasks?|pages?|images?|actions?)$/i;
+    const partRegex = /^(exploring|explored|editing|edited|running|ran|searching|searched|reading|read)(?:\s*(?:(\d+)\s+)?(files?|folders?|commands?|artifacts?|searches?|tasks?|pages?|images?|actions?))?$/i;
 
     const parts = clean.split(/\s*,\s*/);
     if (parts.length === 0) return null;
@@ -902,10 +1412,17 @@
     for (const part of parts) {
       const m = part.trim().match(partRegex);
       if (!m) return null;
-      const v = verbMap[m[1].toLowerCase()] || m[1];
+      const verbKey = m[1].toLowerCase();
+      const v = verbMap[verbKey] || m[1];
       const count = m[2];
-      const nounKey = m[3].toLowerCase();
-      const n = nounMap[nounKey] || m[3];
+      const nounRaw = m[3];
+      if (!nounRaw) {
+        if (!/^(exploring|explored|editing|edited)$/.test(verbKey)) return null;
+        translatedParts.push(v);
+        continue;
+      }
+      const nounKey = nounRaw.toLowerCase();
+      const n = nounMap[nounKey] || nounRaw;
       const unit = unitMap[nounKey] || '个';
       if (count !== undefined) {
         translatedParts.push(`${v} ${count} ${unit}${n}`);
@@ -932,48 +1449,84 @@
       .trim();
   }
 
+  function formatShortDuration(str) {
+    return str
+      .trim()
+      .replace(/(\d+)\s*d\b/gi, '$1 天')
+      .replace(/(\d+)\s*h\b/gi, '$1 小时')
+      .replace(/(\d+)\s*m\b/gi, '$1 分钟')
+      .replace(/(\d+)\s*s\b/gi, '$1 秒')
+      .replace(/\s+/g, ' ');
+  }
+
+  // 权限目标属于数据：只翻译模板，并立即返回，禁止后续规则改写命令/路径。
+  function translatePermission(value) {
+    const text = value.trim();
+    // MutationObserver 会再次观察到翻译后的文本；二次处理也须保持目标不变。
+    if (/^(正在请求权限：|智能体需要权限才能|是，并.*(?:保存|始终允许)|保存规则以始终允许\s|与您配置的询问权限冲突：|需要手动确认：|允许\s)/s.test(text)) return value;
+    const scopes = {
+      'when not in a project': '不在项目中时',
+      'in this conversation': '在此对话中',
+      'in this project': '在此项目中',
+      'in this workspace': '在此工作区',
+      globally: '全局',
+    };
+    const actions = {
+      'read access to this path': '读取此路径',
+      'write access to this path': '写入此路径',
+      'reading this URL': '读取此 URL',
+      'executing actions on this URL': '在此 URL 上执行操作',
+      'running this command outside the sandbox': '在沙盒外运行此命令',
+      'running this command': '运行此命令',
+      'using this MCP tool': '使用此 MCP 工具',
+      'run (unsandboxed)': '在沙盒外运行',
+      'grant administrator access for': '授予管理员权限',
+      run: '运行',
+      read: '读取',
+      write: '写入',
+      use: '使用',
+      access: '访问',
+    };
+    let m, translated;
+    if ((m = text.match(/^Requesting permission to (running this command outside the sandbox|running this command|read access to this path|write access to this path|reading this URL|executing actions on this URL|using this MCP tool|run \(unsandboxed\)|grant administrator access for|run|read|write|use|access) ([\s\S]+)$/))) {
+      translated = '正在请求权限：' + actions[m[1]] + ' ' + m[2];
+    } else if ((m = text.match(/^Agent needs permission to execute JavaScript on ([\s\S]+)$/))) {
+      translated = '智能体需要权限才能在 ' + m[1] + ' 上执行 JavaScript';
+    } else if ((m = text.match(/^Agent needs permission to act on ([\s\S]+)$/))) {
+      translated = '智能体需要权限才能操作 ' + m[1];
+    } else if ((m = text.match(/^Yes, save rule for '([\s\S]*)' (when not in a project|in this conversation|in this project|in this workspace|globally)$/))) {
+      translated = `是，并${scopes[m[2]]}保存 '${m[1]}' 的规则`;
+    } else if ((m = text.match(/^Yes, save rule (when not in a project|in this conversation|in this project|in this workspace|globally)$/))) {
+      translated = `是，并${scopes[m[1]]}保存规则`;
+    } else if ((m = text.match(/^Yes, and always allow '([\s\S]*)'(?: (when not in a project|in this conversation|in this project|in this workspace|globally))?$/))) {
+      translated = `是，并${scopes[m[2]] || ''}始终允许 '${m[1]}'`;
+    } else if ((m = text.match(/^Yes, and always allow(?: (when not in a project|in this conversation|in this project|in this workspace|globally))?$/))) {
+      translated = `是，并${scopes[m[1]] || ''}始终允许`;
+    } else if ((m = text.match(/^Conflicts with your configured Ask permission: ([\s\S]+)$/))) {
+      translated = '与您配置的询问权限冲突：' + m[1];
+    } else if ((m = text.match(/^Requires manual confirmation: ([\s\S]+)$/))) {
+      translated = '需要手动确认：' + m[1];
+    } else if (!phrases.has(text) && !lowerPhrases.has(text.toLowerCase()) && (m = text.match(/^Save rule to always allow ([\s\S]+)\?$/))) {
+      translated = '保存规则以始终允许 ' + m[1] + '？';
+    } else if (!phrases.has(text) && !lowerPhrases.has(text.toLowerCase()) && (m = text.match(/^Allow ([\s\S]+)$/)) && !/^(?:Non-Flow|[a-z]+ing\s|[a-z]+\s+to\s)/i.test(m[1])) {
+      translated = '允许 ' + m[1];
+    } else if (/^(Requesting permission to |Agent needs permission to |Yes, (?:save rule|and always allow)|Conflicts with your configured Ask permission: |Requires manual confirmation: )/.test(text)) {
+      return value; // 新版未知权限模板保留原文，不能冒险翻译其中的目标。
+    } else {
+      return null;
+    }
+    return value.replace(text, () => translated); // 回调避免目标中的 $& / $' 被当作替换指令。
+  }
 
   // 动态变量与模板匹配（仅针对含捕获组、时间、计算等动态规则）
   const dynamicPatterns = [
-    // 动态权限请求
-    [/Requesting permission to (read access to this path|write access to this path|reading this URL|executing actions on this URL|running this command|running this command outside the sandbox|using this MCP tool) (.+)/g, (_match, action, target) => {
-      const actions = {
-        'read access to this path': '读取此路径',
-        'write access to this path': '写入此路径',
-        'reading this URL': '读取此 URL',
-        'executing actions on this URL': '在此 URL 上执行操作',
-        'running this command': '运行此命令',
-        'running this command outside the sandbox': '在沙盒外运行此命令',
-        'using this MCP tool': '使用此 MCP 工具',
-      };
-      return '正在请求权限：' + (actions[action] ?? action) + ' ' + target;
-    }],
-    [/Agent needs permission to act on (.+)/g, '智能体需要权限才能操作 $1'],
-    [/Agent needs permission to execute JavaScript on (.+)/g, '智能体需要权限才能在 $1 上执行 JavaScript'],
-    [/Yes, save rule for '([^']+)' (when not in a project|in this project|in this workspace|globally)/g, (_m, target, scope) => {
-      const scopes = { 'when not in a project': '在未处于项目时', 'in this project': '在此项目中', 'in this workspace': '在此工作区', 'globally': '全局' };
-      return `是，并在${scopes[scope] || scope}保存 '${target}' 的规则`;
-    }],
-    [/Yes, save rule (when not in a project|in this project|in this workspace|globally)/g, (_m, scope) => {
-      const scopes = { 'when not in a project': '在未处于项目时', 'in this project': '在此项目中', 'in this workspace': '在此工作区', 'globally': '全局' };
-      return `是，并在${scopes[scope] || scope}保存规则`;
-    }],
-    [/Yes, and always allow '([^']+)'( (when not in a project|in this project|in this workspace))?/g, (_m, target, _p, scope) => {
-      const scopes = { 'when not in a project': '在未处于项目时', 'in this project': '在此项目中', 'in this workspace': '在此工作区' };
-      return `是，并${scope ? '在' + scopes[scope] : ''}始终允许 '${target}'`;
-    }],
-    [/Yes, and always allow( (when not in a project|in this project|in this workspace))?/g, (_m, _p, scope) => {
-      const scopes = { 'when not in a project': '在未处于项目时', 'in this project': '在此项目中', 'in this workspace': '在此工作区' };
-      return `是，并${scope ? '在' + scopes[scope] : ''}始终允许`;
-    }],
 
     // 动态时间与耗时
-    [/Worked for (\d+)\s*s\b/gi, '已工作 $1 秒'],
-    [/Worked for (\d+)\s*m\b/gi, '已工作 $1 分钟'],
-    [/Worked for (\d+)\s*h\b/gi, '已工作 $1 小时'],
-    [/Thought for (\d+)\s*s\b/gi, '已思考 $1 秒'],
-    [/Thought for (\d+)\s*m\b/gi, '已思考 $1 分钟'],
-    [/Thought for (\d+)\s*h\b/gi, '已思考 $1 小时'],
+    [/Worked for ((?:\d+\s*[dhms]\b\s*)+)/gi, (_m, dur) => '已工作 ' + formatShortDuration(dur)],
+    [/Stopped after ((?:\d+\s*[dhms]\b\s*)+)/gi, (_m, dur) => '工作 ' + formatShortDuration(dur) + '后停止'],
+    [/Thought for ((?:\d+\s*[dhms]\b\s*)+)/gi, (_m, dur) => '已思考 ' + formatShortDuration(dur)],
+    [/Thinking for ((?:\d+\s*[dhms]\b\s*)+)/gi, (_m, dur) => '已思考 ' + formatShortDuration(dur)],
+    [/Compacting \u00b7 ((?:\d+\s*[dhms]\b\s*)+)/gi, (_m, dur) => '正在压缩上下文 · ' + formatShortDuration(dur)],
     [/Fold lines (\d+)-(\d+)/g, '折叠第 $1-$2 行'],
     [/(\d+)\s*minutes?\s*ago\b/gi, '$1 分钟前'],
     [/(\d+)\s*hours?\s*ago\b/gi, '$1 小时前'],
@@ -981,6 +1534,10 @@
     [/(\d+)\s*weeks?\s*ago\b/gi, '$1 周前'],
     [/(\d+)\s*months?\s*ago\b/gi, '$1 个月前'],
     [/(\d+)\s*years?\s*ago\b/gi, '$1 年前'],
+    [/^about (\d+\s*(?:years?|months?|weeks?|days?|hours?|minutes?|seconds?))$/gi, (_m, dur) => '大约 ' + formatRelativeTime(dur)],
+    [/^over (\d+\s*(?:years?|months?|weeks?|days?|hours?|minutes?|seconds?))$/gi, (_m, dur) => '超过 ' + formatRelativeTime(dur)],
+    [/^almost (\d+\s*(?:years?|months?|weeks?|days?|hours?|minutes?|seconds?))$/gi, (_m, dur) => '将近 ' + formatRelativeTime(dur)],
+    [/^Don't show this for (\d+)\s*days?$/gi, '$1 天内不再显示'],
     [/Refreshes in (.+)/gi, (_m, time) => `${formatRelativeTime(time)}后刷新`],
     [/You have used (some|all) of your (weekly|5-hour) limit, it will (?:fully )?refresh in (.+?)\.?$/gi, (_m, qty, type, time) => {
       const isAll = qty.toLowerCase() === 'all';
@@ -994,18 +1551,22 @@
     [/(\d+(?:\.\d+)?)% of the customization budget is available\./g, '自定义预算还剩 $1%。'],
     [/(\d+)\s*agents running/g, '$1 个代理正在运行'],
     [/See all \((\d+)\)/g, '查看全部 ($1)'],
+    [/^Send all \((\d+)\)$/g, '全部发送 ($1)'],
     [/Modified in (\d+)\s*(?:projects?|项目)/gi, '已在 $1 个项目中自定义'],
     [/^(\d+)\s*projects?$/i, '$1 个项目'],
     [/Show (\d+)\s*breakdowns?/gi, '显示 $1 个明细'],
+    [/Load older messages, showing (\d+) of (\d+)/g, '加载更早的消息，显示 $1 / $2'],
     [/No more older messages, showing (\d+) of (\d+)/g, '没有更早的消息了，显示 $1 / $2'],
     [/showing (\d+) of (\d+)/gi, '显示 $1 / $2'],
+    [/^Folder has more than (\d+)\s*files?$/gi, '文件夹包含超过 $1 个文件'],
+    [/^(\d+)\s*files?\s+changed$/gi, '$1 个文件已更改'],
     [/(\d+) files?, (\d+) folders?/gi, '$1 个文件, $2 个文件夹'],
     [/(\d+) files?, (\d+) searches?/gi, '$1 个文件, $2 次搜索'],
-    [/(\d+)\s*folders?/gi, '$1 个文件夹'],
-    [/(\d+)\s*files?/gi, '$1 个文件'],
-    [/(\d+)\s*searches?/gi, '$1 次搜索'],
-    [/(\d+)\s*search\b/gi, '$1 次搜索'],
-    [/(\d+)\s*tokens?/gi, '$1 个 Token'],
+    [/^(\d+)\s*folders?$/gi, '$1 个文件夹'],
+    [/^(\d+)\s*files?$/gi, '$1 个文件'],
+    [/^(\d+)\s*searches?$/gi, '$1 次搜索'],
+    [/^(\d+)\s*search\b$/gi, '$1 次搜索'],
+    [/^(\d+)\s*tokens?$/gi, '$1 个 Token'],
     [/^(\d+)d$/g, '$1天'],
     [/^(\d+)m$/g, '$1分钟'],
     [/^(\d+)s$/g, '$1秒'],
@@ -1021,26 +1582,24 @@
       const efforts = { High: '高', Medium: '中', Low: '低' };
       return 'Gemini ' + model.trim() + ' (' + (efforts[effort] ?? effort) + ')';
     }],
-    [/(Learn more|了解更多) about\s*(.+)/g, '了解更多关于 $2'],
+    [/^(Learn more|了解更多) about\s*(.+)$/g, '了解更多关于 $2'],
   ];
 
   const patternsPost = [
-    // 动态命令按钮兜底
-    [/^Allow (.+)$/g, '允许 $1'],
     // 动态选项与操作
-    [/^(.+)\s+options$/g, '$1 选项'],
-    [/(\b(?:Overview|Review|Terminal|Console|Output|Problems|Debug)\b|[^\x00-\xff]+)\s+tab\b/gi, '$1 标签页'],
+    [/^([^\x00-\xff]+)\s+options$/gi, '$1 选项'],
+    [/^(?:(\b(?:Overview|Review|Terminal|Console|Output|Problems|Debug)\b)|([^\x00-\xff]+))\s+tab$/gi, '$1$2 标签页'],
     [/(?:刷新|Refresh)\s*MCP\s*servers?/gi, '刷新 MCP 服务器'],
     [/\btokens\)/gi, 'Token)'],
-    // 量词与时间单位补齐
+    // 量词与时间单位补齐（仅在已含中文的半翻译文本中补齐单位，避免破坏未知英文长句）
     [/(\d+)\s*搜索/g, '$1 次搜索'],
-    [/(\d+)\s*days?\b/gi, '$1 天'],
-    [/(\d+)\s*hours?\b/gi, '$1 小时'],
-    [/(\d+)\s*minutes?\b/gi, '$1 分钟'],
-    [/(\d+)\s*seconds?\b/gi, '$1 秒'],
-    [/(\d+)\s*weeks?\b/gi, '$1 周'],
-    [/(\d+)\s*months?\b/gi, '$1 个月'],
-    [/(\d+)\s*years?\b/gi, '$1 年'],
+    [/(?<=[\u4e00-\u9fff][^\n]*?)(\d+)\s*days?\b/gi, '$1 天'],
+    [/(?<=[\u4e00-\u9fff][^\n]*?)(\d+)\s*hours?\b/gi, '$1 小时'],
+    [/(?<=[\u4e00-\u9fff][^\n]*?)(\d+)\s*minutes?\b/gi, '$1 分钟'],
+    [/(?<=[\u4e00-\u9fff][^\n]*?)(\d+)\s*seconds?\b/gi, '$1 秒'],
+    [/(?<=[\u4e00-\u9fff][^\n]*?)(\d+)\s*weeks?\b/gi, '$1 周'],
+    [/(?<=[\u4e00-\u9fff][^\n]*?)(\d+)\s*months?\b/gi, '$1 个月'],
+    [/(?<=[\u4e00-\u9fff][^\n]*?)(\d+)\s*years?\b/gi, '$1 年'],
   ];
 
   function replacePhrase(value, source, target) {
@@ -1051,13 +1610,25 @@
   // 核心翻译流水线：精准完全匹配优先 -> 动态进度栏 -> 长句及复合短语子串 -> 动态变量规则
   function translate(value) {
     if (!value || !/[A-Za-z]/.test(value)) return value;
+    const permission = translatePermission(value);
+    if (permission !== null) return permission;
     const trimmed = value.trim();
+
+    // 启动浮窗中的发行版名称也属于变量，不能交给数量/短语规则改写。
+    let wsl;
+    if ((wsl = trimmed.match(/^Setting up WSL: ([\s\S]+)$/))) return value.replace(trimmed, () => '正在设置 WSL：' + wsl[1]);
+    if ((wsl = trimmed.match(/^Installing into ([\s\S]+)…$/))) return value.replace(trimmed, () => '正在安装到 ' + wsl[1] + '…');
+    if (/^(正在设置 WSL：|正在安装到 )/.test(trimmed)) return value;
 
     // 1. 精准完全匹配（独立按钮、菜单项、短词、快捷键与标点，彻底杜绝短词在未知长句中途破坏）
     const exact = matchExactPhrase(trimmed);
     if (exact) {
       return value.replace(trimmed, exact);
     }
+
+    // 时间筛选完整翻译，兼容旧词库已经留下的 "Last 7 天" 等半翻译标签。
+    const recentDays = trimmed.match(/^Last\s+(\d+)\s*(?:days?|天)$/i);
+    if (recentDays) return value.replace(trimmed, () => `最近 ${recentDays[1]} 天`);
 
     // 2. 动态任务进度栏解析（例如 "Exploring files, running commands ⌵"）
     const progress = translateAgentProgress(value);
@@ -1086,24 +1657,23 @@
     return next;
   }
 
-  function shouldSkip(node) {
+  function shouldSkipSubtree(node) {
     const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
     if (!element) return false;
 
-    // 跳过代码与编辑区
-    if (element.closest('script, style, textarea, code, pre, .xterm, .monaco-editor')) {
+    // 跳过代码与编辑区（textarea 放到下方输入区规则中，保留自身 placeholder/aria-label 翻译）
+    if (element.closest('script, style, code, pre, .xterm, .monaco-editor')) {
       return true;
     }
 
-    // 跳过输入框
+    // 跳过输入框与文本域的正文/子节点，但允许元素自身属性（placeholder、aria-label）翻译
     if (node.nodeType === Node.TEXT_NODE) {
-      if (element.closest('[contenteditable="true"], [contenteditable=""], input')) {
+      if (element.closest('[contenteditable]:not([contenteditable="false"]), input, textarea')) {
         return true;
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
-      // 跳过编辑框子节点
       const parent = node.parentElement;
-      if (parent && parent.closest('[contenteditable="true"], [contenteditable=""], input')) {
+      if (parent && parent.closest('[contenteditable]:not([contenteditable="false"]), input, textarea')) {
         return true;
       }
     }
@@ -1113,22 +1683,31 @@
       return true;
     }
 
-    // 跳过侧边栏会话历史列表中的会话名称
+    // 跳过用户输入
+    if (element.closest('[data-testid="user-input-step"], [aria-label="User message"], [aria-label="用户消息"]')) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function shouldSkip(node) {
+    if (shouldSkipSubtree(node)) return true;
+    const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    if (!element) return false;
+
+    // 跳过侧边栏会话历史列表中的会话名称（保留行内操作按钮）
     const historyItem = element.closest('[data-testid="conversation-row-sidebar"], [data-cascade-id], .past-conversations, .conversation-list, .history-list, .conversations-list, [data-testid="history-list"], [data-testid="past-conversations"], .conversation-item, .convo-item, .history-item, [class*="history-item"], [class*="convo-item"]');
     if (historyItem) {
       const isActionBtn = element.closest('button[aria-label], button[title], [class*="delete"], [class*="pin"], [class*="archive"]');
       if (!isActionBtn) return true;
     }
 
-    // 跳过用户输入
-    if (element.closest('[data-testid="user-input-step"], [aria-label="User message"], [aria-label="用户消息"]')) {
-      return true;
-    }
-
-    // 跳过回复正文（保留控件）
+    // 跳过回复正文（保留控件、折叠步骤栏、变更概览与系统提示卡片）
     const agentResponse = element.closest('[aria-label="Agent response"], [aria-label="智能体回复"]');
     if (agentResponse) {
-      const isInteractive = element.closest('button, [role="button"], [class*="action"], [class*="button-container"]');
+      if (node.nodeType === Node.ELEMENT_NODE && element === agentResponse) return false;
+      const isInteractive = element.closest('button, [role="button"], [class*="action"], [class*="button-container"], [data-testid="cleared-step-notice"], .files-changed-header');
       if (!isInteractive) return true;
     }
 
@@ -1187,6 +1766,7 @@
   }
 
   function translateElement(element) {
+    if (shouldSkip(element)) return;
     if (!isInAntigravityContainer(element)) return;
     for (const attr of ['aria-label', 'title', 'placeholder', 'alt']) {
       const value = element.getAttribute?.(attr);
@@ -1198,8 +1778,9 @@
 
   function translateNode(root) {
     if (!root) return;
-    if (shouldSkip(root)) return;
+    if (shouldSkipSubtree(root)) return;
     if (root.nodeType === Node.TEXT_NODE) {
+      if (shouldSkip(root)) return;
       if (!isInAntigravityContainer(root)) return;
       if (root.__zh_patched) return;
       const val = root.nodeValue || '';
@@ -1210,7 +1791,7 @@
     }
     if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
     if (root.nodeType === Node.ELEMENT_NODE) {
-      if (!root.__zh_patched) {
+      if (!root.__zh_patched && !shouldSkip(root)) {
         // 节点可能先被插入、后被 React/Vue 补上容器 class。未处于目标容器时
         // 不能标记为已处理，否则后续容器就绪后不会再翻译它的子树。
         if (isInAntigravityContainer(root)) {
@@ -1239,10 +1820,15 @@
   }
 
   function run() {
+    if (cancelled) return;
     document.documentElement.lang = 'zh-CN';
+    if (updating) {
+      const stale = document.createTreeWalker(document, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+      for (let node = stale.nextNode(); node; node = stale.nextNode()) node.__zh_patched = false;
+    }
     translateNode(document);
 
-    new MutationObserver((mutations) => {
+    observer = new MutationObserver((mutations) => {
       const nodesToTranslate = [];
       const elementsToTranslate = [];
 
@@ -1270,7 +1856,9 @@
       }
 
       if (nodesToTranslate.length > 0 || elementsToTranslate.length > 0) {
-        setTimeout(() => {
+        const timer = setTimeout(() => {
+          pendingTimers.delete(timer);
+          if (cancelled) return;
           for (const node of nodesToTranslate) {
             translateNode(node);
           }
@@ -1278,8 +1866,10 @@
             translateElement(el);
           }
         }, 0);
+        pendingTimers.add(timer);
       }
-    }).observe(document, {
+    });
+    observer.observe(document, {
       childList: true,
       subtree: true,
       characterData: true,
