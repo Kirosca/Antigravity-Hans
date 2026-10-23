@@ -74,6 +74,27 @@ test('2.23.0 normal app controls and safety policies are localized', () => {
   ]) assert.equal(translate(input), expected);
 });
 
+test('2.25.0 normal app controls, workspaces and debug view are localized', () => {
+  for (const [input, expected] of [
+    ['Open Trajectory Debug View', '打开轨迹调试视图'],
+    ['Copy Trajectory ID', '复制轨迹 ID'],
+    ['CitC Workspace', 'CitC 工作区'],
+    ['Work in a CitC workspace.', '在 CitC 工作区中开展工作。'],
+    ['Cog Workspace', 'Cog 工作区'],
+    ['ABFS Workspace (Alpha)', 'ABFS 工作区（Alpha）'],
+    ['Prompt to execute on schedule...', '按计划执行的提示词…'],
+    ['Schedules only.', '仅限计划任务。'],
+    ['New: Per-Conversation Telemetry', '新功能：按对话独立设置遥测'],
+    ['File Explorer', '文件资源管理器'],
+    ['Upload to Google Drive', '上传到 Google 云端硬盘'],
+    ['Open in Tab', '在标签页中打开'],
+    ['Connect to WSL', '连接到 WSL'],
+    ['Reopen Locally', '在本地重新打开'],
+    ['Downloading Update', '正在下载更新'],
+    ['Restart to Update', '重启以更新'],
+  ]) assert.equal(translate(input), expected);
+});
+
 test('WSL provisioning translates status while preserving the distro name', () => {
   const name = 'Ubuntu 10 files';
   for (const input of [`Setting up WSL: ${name}`, `Installing into ${name}…`]) {
