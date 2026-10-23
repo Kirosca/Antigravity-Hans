@@ -1,10 +1,27 @@
 # Antigravity 汉化工具 (Antigravity-Hans)
 
+<p align="left">
+  <a href="https://github.com/Kirosca/Antigravity-Hans/releases"><img src="https://img.shields.io/github/v/release/Kirosca/Antigravity-Hans?style=flat-square&color=3b82f6" alt="Release" /></a>
+  <a href="https://github.com/Kirosca/Antigravity-Hans/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Kirosca/Antigravity-Hans/ci.yml?branch=main&label=CI&style=flat-square" alt="CI Status" /></a>
+  <a href="https://go.dev/"><img src="https://img.shields.io/github/go-mod/go-version/Kirosca/Antigravity-Hans?style=flat-square" alt="Go Version" /></a>
+</p>
+
 专为 **Google Antigravity** 及 **Antigravity IDE** 开发的中文汉化工具。
 
 > **适配版本**：**Antigravity `2.25.0`** 与 **Antigravity IDE `2.5.5`**。
 >
 > 本轮更新针对普通版 `2.25.0`，词库扩充至 1500 条经过实际前端资源核对的词条；IDE 的静态补丁与语言配置未调整。动态汉化基于 CDP 注入，界面文案或 DOM 结构变化时仍可能需要更新词库；静态补丁与 IDE 内部目录结构强相关。
+
+---
+
+## 特性亮点
+
+- **全面适配 Antigravity 2.25.0**：词库扩充至 1500 条高频与界面核心词条，覆盖设置面板、轨迹与调试器（Trajectory Debug View）、工作区树（Piper g4、JJ、Cog 等）、自动化调度（`/automation`）、Sidecar 配置及 MCP 插件市场等全新功能界面。
+- **平滑无感渲染（Anti-FOUC 机制）**：引入 DOM 挂载微任务预处理与平滑渐入渲染机制（CSS 遮罩 + 动态节点同步翻译），彻底消除设置面板及各类模态弹窗挂载时的中英文闪烁跳动。
+- **无损动态汉化**：通过 Chrome DevTools Protocol (CDP) 注入翻译，无需修改应用本地二进制文件与资源包，安全可控，退出工具后自动还原。
+- **静态补丁支持**：针对 Antigravity IDE 提供深度静态修补与文件校验和重算，一键应用或还原，启动即享完整中文界面。
+- **快捷方式与单实例管理**：支持 `--shortcut` 参数一键生成桌面快捷启动方式；内置单实例互斥锁与 `--stop` 命令，避免多监视器冲突。
+- **严密安全防护**：不开启开放式外网监听端口，严格绑定 `127.0.0.1` 本地回环地址；对外部脚本增加类型、权限与安全标记校验。
 
 ---
 
@@ -17,9 +34,9 @@
 
 ## 快速使用
 
-前往 [Releases](../../releases) 下载对应平台的单文件即可运行：
+前往 [GitHub Releases](https://github.com/Kirosca/Antigravity-Hans/releases) 下载对应平台的单文件即可运行：
 
-- **Windows**：双击 `antigravity-hans-windows-amd64.exe`，在交互菜单中选择对应模式。
+- **Windows**：下载 `antigravity-hans-windows-amd64.exe`，双击运行即可在终端菜单中选择对应模式。
 - **macOS**：
   ```bash
   chmod +x antigravity-hans-macos-*
@@ -98,22 +115,38 @@ antigravity-hans --trust-external-overlay  # 显式信任同目录外部汉化�
 
 ---
 
-## 源码编译
+## 源码编译与测试
 
-需要 **Go 1.26.10 或更高版本**（`go.mod` 已声明，旧工具链会自动下载对应版本）。
+编译需要 **Go 1.26.10 或更高版本**（已在 `go.mod` 声明）。
 
 ```bash
-./build.sh    # 交叉编译 macOS / Windows 三个平台到 dist/
+# 交叉编译 macOS / Windows 三个平台的二进制文件至 dist/ 目录
+./build.sh
 ```
+
+如需在本地执行完整的代码规范与回归测试：
+
+```bash
+# Go 检查与单元测试
+gofmt -l .
+go vet ./...
+go test -count=1 ./...
+
+# 词库语法体检与回归测试（需 Node.js 环境）
+node tools/lint-overlay.mjs
+node --test tools/overlay.test.mjs
+```
+
 ---
 
 ## 更新说明
 
 ### v0.5.1
 
-**体验优化**
+**体验优化与 Anti-FOUC**
 
 - 解决设置面板与各类弹窗打开时文字闪烁（从英文跳成中文）的问题：引入 CSS 平滑遮罩与同步预处理机制，在弹窗挂载第一帧同步完成文本替换并瞬时淡入，彻底消除界面中英跳变。
+- 工具链升级与安全修复：`go.mod` 声明升级至 Go 1.26.10，解决旧版标准库安全隐患（GO-2026-6809）。
 
 ### v0.5.0
 
@@ -162,4 +195,3 @@ antigravity-hans --trust-external-overlay  # 显式信任同目录外部汉化�
 
 - 本项目 fork 自 [yuexps/Antigravity-Hans](https://github.com/yuexps/Antigravity-Hans)，感谢原作者与所有贡献者。
 - 汉化词库参考：[antigravity-chinese](https://github.com/kdczyz/antigravity-chinese)
-
