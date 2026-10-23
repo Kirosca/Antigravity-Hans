@@ -137,6 +137,12 @@ test('attribute mutations inside skipped code/user content are not translated', 
   assert.equal(attrs.get('aria-label'), '编辑权限目标');
 });
 
+test('smooth ready style prevents settings dialog flash', () => {
+  assert.match(source, /antigravity-zh-smooth-style/);
+  assert.match(source, /data-zh-ready/);
+  assert.match(source, /\[role="dialog"\]:not\(\[data-zh-ready="true"\]\)/);
+});
+
 test('lint catches untranslated words and permission polarity reversals', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-lexicon-test-'));
   try {

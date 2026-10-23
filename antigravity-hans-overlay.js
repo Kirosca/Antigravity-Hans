@@ -1,6 +1,6 @@
 (() => {
   if (typeof window === 'undefined') return;
-  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.25.0-20261023-r1';
+  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.25.0-20261023-r2';
   if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document && window.__antigravityZhPatchFingerprint === fingerprint) return;
   const updating = window.__antigravityZhPatchInstalled === true && window.__observedDocument === document;
   if (typeof window.__antigravityZhPatchCleanup === 'function') window.__antigravityZhPatchCleanup();
@@ -16,6 +16,8 @@
     window.removeEventListener('DOMContentLoaded', run);
     for (const timer of pendingTimers) clearTimeout(timer);
     pendingTimers.clear();
+    const smoothStyle = document.getElementById?.('antigravity-zh-smooth-style');
+    if (smoothStyle?.remove) smoothStyle.remove();
   };
 
   const phrases = new Map([
@@ -2020,14 +2022,65 @@
     }
   }
 
+  function injectSmoothStyles() {
+    if (typeof document === 'undefined' || !document.createElement) return;
+    if (document.getElementById?.('antigravity-zh-smooth-style')) return;
+    const style = document.createElement('style');
+    style.id = 'antigravity-zh-smooth-style';
+    style.textContent = `
+      [role="dialog"]:not([data-zh-ready="true"]),
+      [data-drawer-content]:not([data-zh-ready="true"]),
+      .settings-body:not([data-zh-ready="true"]),
+      .settings-editor:not([data-zh-ready="true"]) {
+        opacity: 0 !important;
+      }
+      [role="dialog"][data-zh-ready="true"],
+      [data-drawer-content][data-zh-ready="true"],
+      .settings-body[data-zh-ready="true"],
+      .settings-editor[data-zh-ready="true"] {
+        opacity: 1 !important;
+        transition: opacity 70ms ease-in !important;
+      }
+    `;
+    const container = document.head || document.documentElement;
+    if (container?.appendChild) {
+      container.appendChild(style);
+    }
+  }
+
+  function markSubtreeReady(node) {
+    if (!node || node.nodeType !== 1) return;
+    const target = node.matches?.('[role="dialog"], [data-drawer-content], .settings-body, .settings-editor')
+      ? node
+      : node.querySelector?.('[role="dialog"], [data-drawer-content], .settings-body, .settings-editor');
+    if (target && !target.hasAttribute?.('data-zh-ready')) {
+      translateNode(target);
+      target.setAttribute?.('data-zh-ready', 'true');
+      const fallbackTimer = setTimeout(() => {
+        pendingTimers.delete(fallbackTimer);
+        if (!target.hasAttribute?.('data-zh-ready')) {
+          target.setAttribute?.('data-zh-ready', 'true');
+        }
+      }, 150);
+      pendingTimers.add(fallbackTimer);
+    }
+  }
+
   function run() {
     if (cancelled) return;
+    injectSmoothStyles();
     document.documentElement.lang = 'zh-CN';
     if (updating) {
       const stale = document.createTreeWalker(document, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
       for (let node = stale.nextNode(); node; node = stale.nextNode()) node.__zh_patched = false;
     }
     translateNode(document);
+    if (document.querySelectorAll) {
+      const existing = document.querySelectorAll('[role="dialog"], [data-drawer-content], .settings-body, .settings-editor');
+      for (const el of existing) {
+        if (!el.hasAttribute?.('data-zh-ready')) el.setAttribute?.('data-zh-ready', 'true');
+      }
+    }
 
     observer = new MutationObserver((mutations) => {
       const nodesToTranslate = [];
@@ -2046,12 +2099,14 @@
           if (mutation.attributeName === 'class' || mutation.attributeName === 'id' ||
               mutation.attributeName === 'role' || mutation.attributeName === 'data-testid') {
             nodesToTranslate.push(target);
+            markSubtreeReady(target);
           } else {
             elementsToTranslate.push(target);
           }
         } else {
           for (const node of mutation.addedNodes) {
             nodesToTranslate.push(node);
+            markSubtreeReady(node);
           }
         }
       }
