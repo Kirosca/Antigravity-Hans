@@ -95,6 +95,25 @@ test('2.25.0 normal app controls, workspaces and debug view are localized', () =
   ]) assert.equal(translate(input), expected);
 });
 
+test('2.26.0 normal app controls, built-in browser, and workspaces are localized', () => {
+  for (const [input, expected] of [
+    ['Fork in Current Workspace', '在当前工作区创建分支'],
+    ['Fork in Shared Workspace', '在共享工作区创建分支'],
+    ['Fork in New Workspace', '在新工作区创建分支'],
+    ['Built-in Browser Requires Isolated Web App (IWA)', '内置浏览器需要独立网页应用 (IWA)'],
+    ['Open in Jetski IWA', '在 Jetski IWA 中打开'],
+    ['Add Custom Model', '添加自定义模型'],
+    ['Select Billing Model', '选择计费模型'],
+    ['Agent Team', '智能体团队'],
+    ['Did what I wanted', '符合预期'],
+    ['Incomplete / Gave up', '未完成 / 中途放弃'],
+    ['Business Account Sign In', '企业账号登录'],
+    ['Hide Thumbnail Sidebar', '隐藏缩略图侧边栏'],
+    ['Mermaid diagram', 'Mermaid 架构图'],
+    ['Voice Mode', '语音模式'],
+  ]) assert.equal(translate(input), expected);
+});
+
 test('WSL provisioning translates status while preserving the distro name', () => {
   const name = 'Ubuntu 10 files';
   for (const input of [`Setting up WSL: ${name}`, `Installing into ${name}…`]) {
