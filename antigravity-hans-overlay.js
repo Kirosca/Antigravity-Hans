@@ -1,6 +1,6 @@
 (() => {
   if (typeof window === 'undefined') return;
-  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.26.0-20261024-r2';
+  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.26.0-20261024-r3';
   if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document && window.__antigravityZhPatchFingerprint === fingerprint) return;
   const updating = window.__antigravityZhPatchInstalled === true && window.__observedDocument === document;
   if (typeof window.__antigravityZhPatchCleanup === 'function') window.__antigravityZhPatchCleanup();
@@ -2254,71 +2254,17 @@
     }
   }
 
-  function injectSmoothStyles() {
-    if (typeof document === 'undefined' || !document.createElement) return;
-    if (document.getElementById?.('antigravity-zh-smooth-style')) return;
-    const style = document.createElement('style');
-    style.id = 'antigravity-zh-smooth-style';
-    style.textContent = `
-      [role="dialog"]:not([data-zh-ready="true"]),
-      [data-drawer-content]:not([data-zh-ready="true"]),
-      [role="tabpanel"]:not([data-zh-ready="true"]),
-      [data-panel]:not([data-zh-ready="true"]),
-      .settings-body:not([data-zh-ready="true"]),
-      .settings-editor:not([data-zh-ready="true"]) {
-        opacity: 0 !important;
-      }
-      [role="dialog"][data-zh-ready="true"],
-      [data-drawer-content][data-zh-ready="true"],
-      [role="tabpanel"][data-zh-ready="true"],
-      [data-panel][data-zh-ready="true"],
-      .settings-body[data-zh-ready="true"],
-      .settings-editor[data-zh-ready="true"] {
-        opacity: 1 !important;
-        transition: opacity 70ms ease-in !important;
-      }
-    `;
-    const container = document.head || document.documentElement;
-    if (container?.appendChild) {
-      container.appendChild(style);
-    }
-  }
-
-  const smoothReadySelector = '[role="dialog"], [data-drawer-content], [role="tabpanel"], [data-panel], .settings-body, .settings-editor, [class*="settings"]';
-
-  function markSubtreeReady(node) {
-    if (!node || node.nodeType !== 1) return;
-    const target = node.matches?.(smoothReadySelector)
-      ? node
-      : node.querySelector?.(smoothReadySelector);
-    if (target && !target.hasAttribute?.('data-zh-ready')) {
-      translateNode(target);
-      target.setAttribute?.('data-zh-ready', 'true');
-      const fallbackTimer = setTimeout(() => {
-        pendingTimers.delete(fallbackTimer);
-        if (!target.hasAttribute?.('data-zh-ready')) {
-          target.setAttribute?.('data-zh-ready', 'true');
-        }
-      }, 150);
-      pendingTimers.add(fallbackTimer);
-    }
-  }
-
   function run() {
     if (cancelled) return;
-    injectSmoothStyles();
+    // 确保清理旧版本可能残留的平滑样式表，防止 opacity: 0 导致弹窗不可见
+    const smoothStyle = document.getElementById?.('antigravity-zh-smooth-style');
+    if (smoothStyle?.remove) smoothStyle.remove();
     document.documentElement.lang = 'zh-CN';
     if (updating) {
       const stale = document.createTreeWalker(document, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
       for (let node = stale.nextNode(); node; node = stale.nextNode()) node.__zh_patched = false;
     }
     translateNode(document);
-    if (document.querySelectorAll) {
-      const existing = document.querySelectorAll(smoothReadySelector);
-      for (const el of existing) {
-        if (!el.hasAttribute?.('data-zh-ready')) el.setAttribute?.('data-zh-ready', 'true');
-      }
-    }
 
     let isTranslating = false;
     observer = new MutationObserver((mutations) => {
@@ -2341,14 +2287,12 @@
             if (mutation.attributeName === 'class' || mutation.attributeName === 'id' ||
                 mutation.attributeName === 'role' || mutation.attributeName === 'data-testid') {
               translateNode(target);
-              markSubtreeReady(target);
             } else {
               translateElement(target);
             }
           } else {
             for (const node of mutation.addedNodes) {
               translateNode(node);
-              markSubtreeReady(node);
             }
           }
         }

@@ -156,11 +156,10 @@ test('attribute mutations inside skipped code/user content are not translated', 
   assert.equal(attrs.get('aria-label'), '编辑权限目标');
 });
 
-test('smooth ready style prevents settings dialog flash', () => {
+test('synchronous translation prevents dialog flash without destructive opacity rules', () => {
+  assert.doesNotMatch(source, /\[role="dialog"\]:not/);
+  assert.doesNotMatch(source, /opacity:\s*0\s*!important/);
   assert.match(source, /antigravity-zh-smooth-style/);
-  assert.match(source, /data-zh-ready/);
-  assert.match(source, /\[role="dialog"\]:not\(\[data-zh-ready="true"\]\)/);
-  assert.match(source, /\[role="tabpanel"\]:not\(\[data-zh-ready="true"\]\)/);
 });
 
 test('lint catches untranslated words and permission polarity reversals', () => {
