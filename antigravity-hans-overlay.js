@@ -1,6 +1,6 @@
 (() => {
   if (typeof window === 'undefined') return;
-  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.26.0-20261024-r1';
+  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.26.0-20261024-r2';
   if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document && window.__antigravityZhPatchFingerprint === fingerprint) return;
   const updating = window.__antigravityZhPatchInstalled === true && window.__observedDocument === document;
   if (typeof window.__antigravityZhPatchCleanup === 'function') window.__antigravityZhPatchCleanup();
@@ -2214,7 +2214,10 @@
       if (root.__zh_patched) return;
       const val = root.nodeValue || '';
       const translated = translate(val);
-      if (translated !== val) root.nodeValue = translated;
+      if (translated !== val) {
+        root.__lastTranslatedValue = translated;
+        root.nodeValue = translated;
+      }
       root.__zh_patched = true;
       return;
     }
@@ -2237,7 +2240,10 @@
         if (node.__zh_patched) continue;
         const val = node.nodeValue || '';
         const translated = translate(val);
-        if (translated !== val) node.nodeValue = translated;
+        if (translated !== val) {
+          node.__lastTranslatedValue = translated;
+          node.nodeValue = translated;
+        }
         node.__zh_patched = true;
       } else if (node.nodeType === Node.ELEMENT_NODE) {
         if (node.__zh_patched) continue;
@@ -2256,12 +2262,16 @@
     style.textContent = `
       [role="dialog"]:not([data-zh-ready="true"]),
       [data-drawer-content]:not([data-zh-ready="true"]),
+      [role="tabpanel"]:not([data-zh-ready="true"]),
+      [data-panel]:not([data-zh-ready="true"]),
       .settings-body:not([data-zh-ready="true"]),
       .settings-editor:not([data-zh-ready="true"]) {
         opacity: 0 !important;
       }
       [role="dialog"][data-zh-ready="true"],
       [data-drawer-content][data-zh-ready="true"],
+      [role="tabpanel"][data-zh-ready="true"],
+      [data-panel][data-zh-ready="true"],
       .settings-body[data-zh-ready="true"],
       .settings-editor[data-zh-ready="true"] {
         opacity: 1 !important;
@@ -2274,11 +2284,13 @@
     }
   }
 
+  const smoothReadySelector = '[role="dialog"], [data-drawer-content], [role="tabpanel"], [data-panel], .settings-body, .settings-editor, [class*="settings"]';
+
   function markSubtreeReady(node) {
     if (!node || node.nodeType !== 1) return;
-    const target = node.matches?.('[role="dialog"], [data-drawer-content], .settings-body, .settings-editor')
+    const target = node.matches?.(smoothReadySelector)
       ? node
-      : node.querySelector?.('[role="dialog"], [data-drawer-content], .settings-body, .settings-editor');
+      : node.querySelector?.(smoothReadySelector);
     if (target && !target.hasAttribute?.('data-zh-ready')) {
       translateNode(target);
       target.setAttribute?.('data-zh-ready', 'true');
@@ -2302,53 +2314,46 @@
     }
     translateNode(document);
     if (document.querySelectorAll) {
-      const existing = document.querySelectorAll('[role="dialog"], [data-drawer-content], .settings-body, .settings-editor');
+      const existing = document.querySelectorAll(smoothReadySelector);
       for (const el of existing) {
         if (!el.hasAttribute?.('data-zh-ready')) el.setAttribute?.('data-zh-ready', 'true');
       }
     }
 
+    let isTranslating = false;
     observer = new MutationObserver((mutations) => {
-      const nodesToTranslate = [];
-      const elementsToTranslate = [];
-
-      for (const mutation of mutations) {
-        if (mutation.type === 'characterData') {
-          const target = mutation.target;
-          target.__zh_patched = false;
-          nodesToTranslate.push(target);
-        } else if (mutation.type === 'attributes') {
-          const target = mutation.target;
-          target.__zh_patched = false;
-          // 容器身份变化时要重新扫描整个子树；仅翻译属性本身会漏掉此前
-          // 因未命中白名单而尚未处理的 Settings 子节点。
-          if (mutation.attributeName === 'class' || mutation.attributeName === 'id' ||
-              mutation.attributeName === 'role' || mutation.attributeName === 'data-testid') {
-            nodesToTranslate.push(target);
-            markSubtreeReady(target);
+      if (cancelled || isTranslating) return;
+      isTranslating = true;
+      try {
+        for (const mutation of mutations) {
+          if (mutation.type === 'characterData') {
+            const target = mutation.target;
+            if (target.__lastTranslatedValue && target.nodeValue === target.__lastTranslatedValue) {
+              continue;
+            }
+            target.__zh_patched = false;
+            translateNode(target);
+          } else if (mutation.type === 'attributes') {
+            const target = mutation.target;
+            target.__zh_patched = false;
+            // 容器身份变化时要重新扫描整个子树；仅翻译属性本身会漏掉此前
+            // 因未命中白名单而尚未处理的 Settings 子节点。
+            if (mutation.attributeName === 'class' || mutation.attributeName === 'id' ||
+                mutation.attributeName === 'role' || mutation.attributeName === 'data-testid') {
+              translateNode(target);
+              markSubtreeReady(target);
+            } else {
+              translateElement(target);
+            }
           } else {
-            elementsToTranslate.push(target);
-          }
-        } else {
-          for (const node of mutation.addedNodes) {
-            nodesToTranslate.push(node);
-            markSubtreeReady(node);
+            for (const node of mutation.addedNodes) {
+              translateNode(node);
+              markSubtreeReady(node);
+            }
           }
         }
-      }
-
-      if (nodesToTranslate.length > 0 || elementsToTranslate.length > 0) {
-        const timer = setTimeout(() => {
-          pendingTimers.delete(timer);
-          if (cancelled) return;
-          for (const node of nodesToTranslate) {
-            translateNode(node);
-          }
-          for (const el of elementsToTranslate) {
-            translateElement(el);
-          }
-        }, 0);
-        pendingTimers.add(timer);
+      } finally {
+        isTranslating = false;
       }
     });
     observer.observe(document, {

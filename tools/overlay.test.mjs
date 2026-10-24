@@ -160,6 +160,7 @@ test('smooth ready style prevents settings dialog flash', () => {
   assert.match(source, /antigravity-zh-smooth-style/);
   assert.match(source, /data-zh-ready/);
   assert.match(source, /\[role="dialog"\]:not\(\[data-zh-ready="true"\]\)/);
+  assert.match(source, /\[role="tabpanel"\]:not\(\[data-zh-ready="true"\]\)/);
 });
 
 test('lint catches untranslated words and permission polarity reversals', () => {
