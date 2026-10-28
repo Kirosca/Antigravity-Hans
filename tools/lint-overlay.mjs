@@ -25,6 +25,7 @@ const ALLOWED_LATIN = new Set([
   'chrome', 'citc', 'cli', 'devtools', 'gemini', 'gemini-api', 'git', 'gitignore', 'http', 'https',
   'ide', 'inline-actions-feedback', 'javascript', 'jetski', 'json', 'lint', 'localhost', 'markdown',
   'mcp', 'plan', 'powershell', 'python', 'sdk', 'shell', 'sidecar', 'tab', 'token', 'url', 'vcs',
+  'gitstage', 'gitcommit', 'gitpush',
 ]);
 
 const POLARITY_POSITIVE = /(allow|enable|approve|accept|trust|permit|always|grant)/i;

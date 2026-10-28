@@ -114,6 +114,30 @@ test('2.26.0 normal app controls, built-in browser, and workspaces are localized
   ]) assert.equal(translate(input), expected);
 });
 
+test('2.27.0 normal app controls, token budget, voice picker, and git staging are localized', () => {
+  for (const [input, expected] of [
+    ["Choose Jetski's Voice", "选择 Jetski 的音色"],
+    ['Customization token budget exceeded. Large customizations are excluded from context.', '自定义项 Token 预算超限。大型自定义项已从上下文中排除。'],
+    ['Both staged and unstaged changes are being committed.', '暂存区与未暂存的更改均将被提交。'],
+    ['Only staged changes are being committed.', '仅暂存区的更改将被提交。'],
+    ['Pin Tab', '固定标签页'],
+    ['Unpin Tab', '取消固定标签页'],
+    ['Close Other Tabs', '关闭其他标签页'],
+    ['Close Tabs to the Right', '关闭右侧标签页'],
+    ['New tab', '新建标签页'],
+    ['Reload this window.', '重新加载此窗口。'],
+    ['Open Tabs', '打开的标签页'],
+    ['Give Feedback', '提供反馈'],
+    ['Best of N', '多选优 (Best of N)'],
+    ['Agent Settings', '智能体设置'],
+    ['Terminal Disabled on Non-Corp Domains', '非公司内网域名已禁用终端'],
+    ['Daily limit', '每日限额'],
+    ['Weekly limit', '每周限额'],
+    ['Get More AI Credits', '获取更多 AI 积分'],
+    ['See Activity', '查看活动'],
+  ]) assert.equal(translate(input), expected);
+});
+
 test('WSL provisioning translates status while preserving the distro name', () => {
   const name = 'Ubuntu 10 files';
   for (const input of [`Setting up WSL: ${name}`, `Installing into ${name}…`]) {
