@@ -138,6 +138,31 @@ test('2.27.0 normal app controls, token budget, voice picker, and git staging ar
   ]) assert.equal(translate(input), expected);
 });
 
+test('2.28.0 normal app controls, auxiliary pane, shortcuts, browser actions, and security are localized', () => {
+  for (const [input, expected] of [
+    ['Toggle Maximize Auxiliary Pane', '切换最大化辅助面板'],
+    ['Sidecar View', 'Sidecar 视图'],
+    ['Edit Shortcut', '编辑快捷键'],
+    ['Reset all shortcuts to defaults', '将所有快捷键重置为默认值'],
+    ['Search flags', '搜索 Flag 标志'],
+    ['Turn on a flag you don\'t have', '开启未拥有的实验性 Flag'],
+    ['Override feature environment', '覆盖功能环境'],
+    ['Start Live Chat', '开始实时语音通话'],
+    ['View site information', '查看网站信息'],
+    ['Connection is secure', '连接是安全的'],
+    ['Certificate details', '证书详情'],
+    ['Simulating Key Press in Browser', '在浏览器中模拟按键'],
+    ['Extracting DOM elements', '正在提取 DOM 元素'],
+    ['MCP App', 'MCP 应用'],
+    ['Add Hook Card', '添加 Hook 卡片'],
+    ['Requesting your permission in Terminal:', '在终端中请求您的权限:'],
+    ['Undo restores your entire workspace to its state at this point.', '撤销将使您的整个工作区恢复到此时的状态。'],
+    ['Cannot start best-of-N mode while the agent is running', '智能体运行期间无法启动 Best of N 模式'],
+    ['PDF file size exceeds 10MB limit', 'PDF 文件大小超过 10MB 限制'],
+    ['Delete All Remote Agents Data', '删除所有远程智能体数据'],
+  ]) assert.equal(translate(input), expected);
+});
+
 test('WSL provisioning translates status while preserving the distro name', () => {
   const name = 'Ubuntu 10 files';
   for (const input of [`Setting up WSL: ${name}`, `Installing into ${name}…`]) {
