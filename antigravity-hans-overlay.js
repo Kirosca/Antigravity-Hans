@@ -1,6 +1,6 @@
 (() => {
   if (typeof window === 'undefined') return;
-  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.28.0-20261029-r1';
+  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.28.1-20261029-r1';
   if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document && window.__antigravityZhPatchFingerprint === fingerprint) return;
   const updating = window.__antigravityZhPatchInstalled === true && window.__observedDocument === document;
   if (typeof window.__antigravityZhPatchCleanup === 'function') window.__antigravityZhPatchCleanup();
@@ -2502,6 +2502,34 @@
     ["Canceled removal of bookmark", "已取消移除书签"],
     ["Removed bookmark", "已移除书签"],
     ["Download Jetski IWA (jetski-shell.swbn)", "下载 Jetski IWA (jetski-shell.swbn)"],
+
+
+    // 普通版 2.28.1：来自本机实际加载的前端 main.js (SHA-256: ED358594A9ADCD0B129EB5B0C202CB3BFFF67FE4523C62B26EB204B94461CF82)
+    // 覆盖插件市场第三方免责声明（Marketplace notice）、插件搜索空状态、剪贴板与基础操作等
+    ["Plugin metadata", "插件元数据"],
+    ["Marketplace notice", "插件市场声明"],
+    ["No plugins match your search.", "没有找到符合您搜索的插件。"],
+    ["No plugins available in the marketplace.", "市场中暂无可用插件。"],
+    ["Malformed third party tools disclaimer flag", "第三方工具免责声明 Flag 格式错误"],
+    ["This Computer", "此电脑"],
+    ["Background Commands", "后台命令"],
+    ["Auto (detected)", "自动 (已检测)"],
+    ["Render failed", "渲染失败"],
+    ["projectManagementService is not available", "项目管理服务不可用"],
+    ["Combobox", "组合框"],
+    ["Cloud", "云端"],
+    ["Files", "文件"],
+    ["Documents", "文档"],
+    ["Uploads", "上传"],
+    ["Extensions", "扩展"],
+    ["Cut", "剪切"],
+    ["Paste", "粘贴"],
+    ["Forward", "前进"],
+    ["Select", "选择"],
+    ["Voice", "语音"],
+    ["Fork", "创建分支"],
+    ["Goals", "目标"],
+    ["Links", "链接"],
 
   ]);
 

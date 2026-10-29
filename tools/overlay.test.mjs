@@ -163,6 +163,21 @@ test('2.28.0 normal app controls, auxiliary pane, shortcuts, browser actions, an
   ]) assert.equal(translate(input), expected);
 });
 
+test('2.28.1 marketplace notice, third-party disclaimer, and basic UI controls are localized', () => {
+  for (const [input, expected] of [
+    ['Marketplace notice', '插件市场声明'],
+    ['Plugin metadata', '插件元数据'],
+    ['No plugins match your search.', '没有找到符合您搜索的插件。'],
+    ['No plugins available in the marketplace.', '市场中暂无可用插件。'],
+    ['Malformed third party tools disclaimer flag', '第三方工具免责声明 Flag 格式错误'],
+    ['This Computer', '此电脑'],
+    ['Background Commands', '后台命令'],
+    ['Auto (detected)', '自动 (已检测)'],
+    ['Render failed', '渲染失败'],
+    ['projectManagementService is not available', '项目管理服务不可用'],
+  ]) assert.equal(translate(input), expected);
+});
+
 test('WSL provisioning translates status while preserving the distro name', () => {
   const name = 'Ubuntu 10 files';
   for (const input of [`Setting up WSL: ${name}`, `Installing into ${name}…`]) {
