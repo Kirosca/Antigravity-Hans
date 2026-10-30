@@ -178,6 +178,23 @@ test('2.28.1 marketplace notice, third-party disclaimer, and basic UI controls a
   ]) assert.equal(translate(input), expected);
 });
 
+test('2.28.2 accounts authentication, skills marketplace, workspace, conversation and settings are localized', () => {
+  for (const [input, expected] of [
+    ['Accounts tab', '账户标签页'],
+    ['Authentication Required', '需要身份认证'],
+    ['Your session has expired. Please log back in to continue.', '您的会话已过期，请重新登录以继续。'],
+    ['Agent Market Search Results', '智能体市场搜索结果'],
+    ['Search and discover customizations to extend your Agent\'s capabilities.', '搜索并探索自定义项以扩展您的智能体能力。'],
+    ['This skill came from the marketplace, so you can add it again whenever you need it.', '此技能来自市场，您可随时按需重新添加。'],
+    ['Clone current workspace into a new independent workspace', '将当前工作区克隆为全新的独立工作区'],
+    ['Trajectory Debug View', '轨迹调试视图'],
+    ['Tip: Complex tasks get better results with multiple responses.', '提示：对于复杂任务，生成多个候选响应通常能获得更佳结果。'],
+    ['Type to search for code across your workspace.', '键入以在整个工作区搜索代码。'],
+    ['Use Google Sans instead of the default Inter typeface', '使用 Google Sans 字体替代默认的 Inter 字体'],
+    ['Use the experimental visual themes instead of standard presets', '使用实验性视觉主题替代标准预设主题'],
+  ]) assert.equal(translate(input), expected);
+});
+
 test('WSL provisioning translates status while preserving the distro name', () => {
   const name = 'Ubuntu 10 files';
   for (const input of [`Setting up WSL: ${name}`, `Installing into ${name}…`]) {
