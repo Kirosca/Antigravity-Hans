@@ -195,6 +195,23 @@ test('2.28.2 accounts authentication, skills marketplace, workspace, conversatio
   ]) assert.equal(translate(input), expected);
 });
 
+test('2.29.0 side questions, schedules, connectors, voice mode and panel layout are localized', () => {
+  for (const [input, expected] of [
+    ['Ask a side question without interrupting the main conversation', '在不中断主对话的情况下进行支线提问'],
+    ['Creates a local automation that runs on this computer', '创建在此电脑上运行的本地自动化'],
+    ['Browse Connectors', '浏览连接器'],
+    ['Browse MCP resources', '浏览 MCP 资源'],
+    ['Start Voice mode', '启动语音模式'],
+    ['The voice used in Voice mode. Powered by Gemini Live.', '语音模式所用音色。由 Gemini Live 提供支持。'],
+    ['Clear visited URLs and autocomplete suggestions from the built-in browser.', '清除内置浏览器中访问过的 URL 与自动补全建议。'],
+    ['Download Location', '下载保存位置'],
+    ['Toggle Maximize Side Panel', '切换最大化侧边栏面板'],
+    ['Send messages with the keyboard\'s Enter key instead of starting a new line.', '使用键盘 Enter 键直接发送消息，而非换行。'],
+    ['Show how full the context window is next to the send button. Click it for a breakdown and to see your model quota.', '在发送按钮旁显示上下文窗口占用比例。点击可查看明细及模型配额。'],
+    ['Work in a New Worktree', '在新的工作树中工作'],
+  ]) assert.equal(translate(input), expected);
+});
+
 test('WSL provisioning translates status while preserving the distro name', () => {
   const name = 'Ubuntu 10 files';
   for (const input of [`Setting up WSL: ${name}`, `Installing into ${name}…`]) {

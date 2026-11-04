@@ -26,7 +26,7 @@ const ALLOWED_LATIN = new Set([
   'ide', 'inline-actions-feedback', 'javascript', 'jetski', 'json', 'lint', 'localhost', 'markdown',
   'mcp', 'plan', 'powershell', 'python', 'sdk', 'shell', 'sidecar', 'tab', 'token', 'url', 'vcs',
   'gitstage', 'gitcommit', 'gitpush', 'gcert', 'voice-engine-addr', 'hooks', 'main', 'filter', 'icon',
-  'jetski-shell', 'swbn', 'best-of-n', 'best',
+  'jetski-shell', 'swbn', 'best-of-n', 'best', 'gh', 'auth', 'login', 'github',
 ]);
 
 const POLARITY_POSITIVE = /(allow|enable|approve|accept|trust|permit|always|grant)/i;
