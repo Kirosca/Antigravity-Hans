@@ -1,6 +1,6 @@
 (() => {
   if (typeof window === 'undefined') return;
-  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.31.0-20261111-r19';
+  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.32.1-20261115-r20';
   if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document && window.__antigravityZhPatchFingerprint === fingerprint) return;
   const updating = window.__antigravityZhPatchInstalled === true && window.__observedDocument === document;
   if (typeof window.__antigravityZhPatchCleanup === 'function') window.__antigravityZhPatchCleanup();
@@ -4950,29 +4950,13 @@
     }
   }
 
-  // 把同一轮内的多个变更批次累积到一个定时器，避免每个 MutationObserver 回调各建一个 timer。
+  // 同步微任务即时处理调度器：消除 setTimeout(0) 宏任务延迟，避免 DOM 挂载与浏览器绘制之间的闪烁
   function createFlushScheduler(flush) {
-    let timer = null;
-    let nodes = [];
-    let elements = [];
-    const cancel = () => {
-      if (timer !== null) clearTimeout(timer);
-      timer = null;
-      nodes = [];
-      elements = [];
-    };
+    let isCancelled = false;
+    const cancel = () => { isCancelled = true; };
     const schedule = (newNodes, newElements) => {
-      for (const node of newNodes) nodes.push(node);
-      for (const element of newElements) elements.push(element);
-      if (timer !== null) return;
-      timer = setTimeout(() => {
-        timer = null;
-        const batchNodes = nodes;
-        const batchElements = elements;
-        nodes = [];
-        elements = [];
-        flush(batchNodes, batchElements);
-      }, 0);
+      if (isCancelled) return;
+      flush(newNodes, newElements);
     };
     return { schedule, cancel };
   }
@@ -5323,6 +5307,9 @@
       for (const mutation of mutations) {
         if (mutation.type === 'characterData') {
           const target = mutation.target;
+          // 若为本脚本刚刚写入的译文，直接跳过，避免重复处理
+          const textRecord = originals.texts.get(target);
+          if (textRecord && target.nodeValue === textRecord.zh) continue;
           target.__zh_patched = false;
           const parent = target.parentElement;
           const welcome = parent?.closest?.('[data-testid="coordinator-welcome"]');
@@ -5343,6 +5330,9 @@
           }
         } else if (mutation.type === 'attributes') {
           const target = mutation.target;
+          // 若为本脚本刚刚写入的属性译文，直接跳过
+          const attrRecord = originals.attrs.get(target)?.get(mutation.attributeName);
+          if (attrRecord && target.getAttribute(mutation.attributeName) === attrRecord.zh) continue;
           target.__zh_patched = false;
           // 容器身份变化时要重新扫描整个子树；仅翻译属性本身会漏掉此前
           // 因未命中白名单而尚未处理的 Settings 子节点。
