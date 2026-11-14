@@ -1,27 +1,9 @@
 # Antigravity 汉化工具 (Antigravity-Hans)
 
-<p align="left">
-  <a href="https://github.com/Kirosca/Antigravity-Hans/releases"><img src="https://img.shields.io/github/v/release/Kirosca/Antigravity-Hans?style=flat-square&color=3b82f6" alt="Release" /></a>
-  <a href="https://github.com/Kirosca/Antigravity-Hans/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Kirosca/Antigravity-Hans/ci.yml?branch=main&label=CI&style=flat-square" alt="CI Status" /></a>
-  <a href="https://go.dev/"><img src="https://img.shields.io/github/go-mod/go-version/Kirosca/Antigravity-Hans?style=flat-square" alt="Go Version" /></a>
-</p>
-
 专为 **Google Antigravity** 及 **Antigravity IDE** 开发的中文汉化工具。
 
-> **适配版本**：**Antigravity `2.29.0`** 与 **Antigravity IDE `2.5.5`**。
->
-> 本轮更新针对普通版 `2.29.0`，词库扩充至 **2750 条** 经过实际前端资源核对的词条；IDE 的静态补丁与语言配置未调整。动态汉化基于 CDP 注入，界面文案或 DOM 结构变化时仍可能需要更新词库；静态补丁与 IDE 内部目录结构强相关。
-
----
-
-## 特性亮点
-
-- **全面适配 Antigravity 2.29.0**：词库扩充至 2750 条核心界面词条，新增支线提问（Side Question）、计划任务与自动化配置、连接器与 GitHub 终端认证、Gemini Live 音色扩展、内置浏览器安全拦截与下载管理、底部面板与终端位置切换等全套控制界面。
-- **平滑无感渲染（Anti-FOUC 机制）**：引入 DOM 挂载微任务预处理与平滑渐入渲染机制（CSS 遮罩 + 动态节点同步翻译），彻底消除设置面板及各类模态弹窗挂载时的中英文闪烁跳动。
-- **无损动态汉化**：通过 Chrome DevTools Protocol (CDP) 注入翻译，无需修改应用本地二进制文件与资源包，安全可控，退出工具后自动还原。
-- **静态补丁支持**：针对 Antigravity IDE 提供深度静态修补与文件校验和重算，一键应用或还原，启动即享完整中文界面。
-- **快捷方式与单实例管理**：支持 `--shortcut` 参数一键生成桌面快捷启动方式；内置单实例互斥锁与 `--stop` 命令，避免多监视器冲突。
-- **严密安全防护**：不开启开放式外网监听端口，严格绑定 `127.0.0.1` 本地回环地址；对外部脚本增加类型、权限与安全标记校验。
+> **适配版本**：**Antigravity `2.31.0`** 与 **Antigravity IDE `2.6.0`**。
+> 普通版的 Swarm 面板，以及 IDE 的智能体和独立设置页面，需要动态监视器；本次适配的验证范围和限制见[更新记录](docs/LOCAL-UPDATE-2026-11-11.md)。
 
 ---
 
@@ -34,9 +16,11 @@
 
 ## 快速使用
 
-前往 [GitHub Releases](https://github.com/Kirosca/Antigravity-Hans/releases) 下载对应平台的单文件即可运行：
+前往 [Releases](../../releases) 下载对应平台的单文件即可运行；
 
-- **Windows**：下载 `antigravity-hans-windows-amd64.exe`，双击运行即可在终端菜单中选择对应模式。
+未测试的最新构建可从 [GitHub Actions Artifacts](https://github.com/yuexps/Antigravity-Hans/actions/workflows/test.yml) 下载。
+
+- **Windows**：双击 `antigravity-hans-windows-amd64.exe`，在交互菜单中选择对应模式。
 - **macOS**：
   ```bash
   chmod +x antigravity-hans-macos-*
@@ -66,6 +50,8 @@ Antigravity-Hans 启动器
 antigravity-hans --app         # 动态汉化 Antigravity
 antigravity-hans --ide         # 动态汉化 Antigravity IDE
 antigravity-hans --patch       # 静态补丁管理 (仅支持 IDE)
+antigravity-hans --app --attach-only  # 仅连接已有调试端口，不启动或重启应用
+antigravity-hans --ide --attach-only  # 仅连接 IDE 已有调试端口
 
 # 生成一键汉化快捷方式
 antigravity-hans --shortcut        # 为两者生成快捷方式
@@ -75,6 +61,7 @@ antigravity-hans --shortcut --ide  # 仅 Antigravity IDE
 # 维护
 antigravity-hans --stop                    # 结束由本工具启动的汉化监视器
 antigravity-hans --trust-external-overlay  # 显式信任同目录外部汉化脚本（类型与大小限制仍生效）
+antigravity-hans --app --trust-custom-translations  # 显式信任同目录自定义翻译名单
 ```
 
 ---
@@ -84,25 +71,49 @@ antigravity-hans --trust-external-overlay  # 显式信任同目录外部汉化�
 1. **动态汉化（推荐）**：
    - 支持 Antigravity 及 Antigravity IDE。
    - 通过 CDP 动态翻译界面，保留应用安装资源；注入状态随应用页面关闭而消失。
+   - 普通版 Swarm 面板和 IDE 2.6.0 的智能体及独立设置页面需要动态监视器；静态补丁不会覆盖这些内嵌页面。
    - 可通过 `--shortcut` 参数一键生成桌面快捷方式，日常双击即可自动启动汉化。
 2. **静态补丁（仅支持 Antigravity IDE）**：
    - 直接修改本地 IDE 安装包资源并修复校验和，一劳永逸，支持随时一键还原。
 
----
+### 中英切换按钮
 
-## 安全说明
+汉化生效后，窗口右下角会出现一个半透明的小圆按钮，可随时在中文与英文之间无缝切换（无需刷新或重启）：
 
-动态汉化的原理是为目标应用开启本地 CDP 调试端口（默认仅监听 `127.0.0.1`），使用期间请注意：
+- 按钮显示 **EN**：单击切换为英文；显示 **中**：单击切回中文。
+- **双击或右键**按钮：打开选项菜单，可选择语言，以及勾选「**选项名保留英文**」。
+- **调整位置**：按住按钮拖动到任意位置后松开即可，位置会自动记住（窗口尺寸变化时会自动保持在可见区域内）。
+- 语言、位置与选项会被记住；多个窗口之间会自动同步。
+- 也支持键盘操作（聚焦按钮后按回车或空格切换语言）。
 
-- **端口不对用户隔离**：同一台电脑上的其它账户、以及本机任意进程都能访问该调试端口。工具已不再传入 `--remote-allow-origins=*`，避免浏览器侧通过 DNS rebinding 绕过同源限制；仍不建议在不可信的多用户机器上长时间挂着监视器。
-- **端口未必是 58321**：普通版首选端口被占用时会改用 58322-58325；候选端口全部被占用则中止启动。普通版 2.23.0+ 自身默认会开启随机 CDP 端口，工具也会发现并复用它。复用前必须核对监听进程的应用身份与 CDP 接口，避免串连其他应用；普通版暂时没有窗口或正处于登录页面时也可复用浏览器级接口，之后只向符合条件的应用页面注入。日志会打印实际端口。
-- **退出监视器 ≠ 关闭端口**：`Ctrl+C` 或 `--stop` 只结束监视进程，调试端口会保留到被汉化的应用退出为止。
-- **启动路径校验**：从注册表（App Paths / 卸载信息）读到的候选路径，必须与目标可执行文件同名、且是普通文件（非目录或符号链接）才会被采用，避免把启动目标指向任意程序。
-- **注入脚本是可信边界**：Unix 上，外部脚本及其目录须属于当前运行用户且不对同组/其他用户开放写权限，脚本还须包含汉化标记。Windows 不使用 Unix 权限位判断 ACL，默认使用内嵌词库，外部脚本需要 `--trust-external-overlay` 显式信任。无论是否显式信任，都拒绝符号链接、特殊文件以及超过 2 MiB 的脚本，避免 FIFO 阻塞或过量读取。权限和标记检查不是脚本签名，仍须确认来源可信。
-- **权限提示中的目标保持原文**：只翻译授权模板，不改写命令、路径、URL 和规则内容；对未知授权模板保留原文。
-- **词库更新有版本识别**：监视器会核对脚本内容指纹，新版词库会替换并清理上一版观察器。没有清理入口的旧版脚本需要先重新加载应用窗口，工具会给出提示，避免两套规则同时运行。
-- 启动时会打印实际使用的脚本来源与 SHA-256 前缀，便于核对注入内容。
-- macOS 上静态补丁会修改已签名 `.app` 的内容并重算 `product.json` 校验和，`codesign --verify` 将不再通过；长期使用建议优先选择动态汉化。
+#### 选项名保留英文（内置预设，默认关闭）
+
+部分用户觉得「Claude Opus 5.5 高」这类中英拼接读起来别扭。勾选后，中文状态下以下选项名保留英文，**说明文字仍为中文**：
+
+| 位置 | 默认（全中文） | 勾选后 |
+| --- | --- | --- |
+| 对话权限菜单 | 当前对话 / 请求审核 / 默认 / 自动 / 极速 | This Conversation / Request Review / Default / Auto / Turbo |
+| 模型推理强度 | 高 / 中 / 低 | High / Medium / Low |
+
+预设内容内置在程序中，随版本更新自动同步，无需额外文件。
+
+### 自定义翻译名单
+
+除了内置预设，进阶用户还可以按需微调个别译法：在程序同目录放一个 `custom-translations.txt`（参考 [custom-translations.example.txt](custom-translations.example.txt)），一行一条（个人名单优先于内置预设）：
+
+```text
+# 只写英文：保留英文，不翻译
+Request Review
+# 英文 = 译文：使用自己的译法
+Turbo = 快速模式
+```
+
+- `#` 只在行首时表示注释（不支持行尾注释）。
+- 界面文字与原文**整段一致**（不区分大小写）时生效，名单外的内容照常汉化；默认没有名单，即全部汉化。
+- 名单可以改变权限等界面文字，请只使用可信的名单。macOS 默认检查名单和所在目录的所有者及写权限；Windows 无法通过该检查验证 ACL，需显式传入 `--trust-custom-translations` 才会加载。文件类型和大小限制始终生效。
+- Windows 用户如需通过中文快捷方式加载可信名单，可运行 `antigravity-hans --shortcut --trust-custom-translations` 重新生成快捷方式；这个选项会保留在新快捷方式中。直接启动或安装静态补丁时，也需分别附带该选项。
+- 修改或删除名单后，动态模式先运行 `antigravity-hans --stop` 结束旧监视器，再启动汉化，无需重启应用；静态模式则需先关闭 IDE，重新运行工具并选择“注入静态汉化”，以更新已安装的脚本。
+- 名单仅作为数据注入（JSON 编码），译文只写入文本，不会被当作脚本或 HTML 执行；删除文件并按上述步骤更新后恢复默认汉化。
 
 ---
 
@@ -110,180 +121,51 @@ antigravity-hans --trust-external-overlay  # 显式信任同目录外部汉化�
 
 - **macOS 双击「中文」图标后没有汉化**：监视进程日志位于 `~/Library/Logs/antigravity-hans.log`，先看该文件。
 - **提示汉化监视器已在运行**：说明上一次的监视器仍在工作，可用 `antigravity-hans --stop` 结束它。
-- **提示退出取消或超时**：仅在没有可复用调试端口时请求正常退出（macOS 用 AppleScript，Windows 用不带 `/F` 的 `taskkill`）。取消、拒绝或超时会中止重启，不会强杀应用；请保存内容并手动退出后重试。
+- **提示退出取消或超时**：仅在没有可复用调试端口时请求正常退出（macOS 用 AppleScript，Windows 用不带 `/F` 的 `taskkill`）。Windows 若只检测到无可见窗口的后台进程，会在交互控制台列出 PID 并询问是否强制结束：输入 `Y` 或按回车继续，输入 `N` 取消；强制结束可能丢失未保存的后台工作。存在可见窗口、无法确认进程身份或使用 `--nogui` 时会中止重启，请保存内容并手动退出后重试。
 - **更新后仍使用旧词库**：先结束旧监视器；如果日志提示旧脚本没有清理入口，重新加载当前应用窗口后再启动新版监视器。
 
 ---
 
-## 源码编译与测试
+## 源码编译
 
-编译需要 **Go 1.26.10 或更高版本**（已在 `go.mod` 声明）。
+需要 **Go 1.27.4 或更高版本**（`go.mod` 已声明，旧工具链会自动下载对应版本）。
 
 ```bash
-# 交叉编译 macOS / Windows 三个平台的二进制文件至 dist/ 目录
-./build.sh
+./build.sh    # 交叉编译 macOS / Windows 2个平台到 dist/
 ```
 
-如需在本地执行完整的代码规范与回归测试：
+在 Windows 上也可使用 PowerShell 7 构建单个本地测试版：
 
-```bash
-# Go 检查与单元测试
-gofmt -l .
-go vet ./...
-go test -count=1 ./...
+```powershell
+pwsh -File .\tools\build-windows.ps1
+```
 
-# 词库语法体检与回归测试（需 Node.js 环境）
-node tools/lint-overlay.mjs
-node --test tools/overlay.test.mjs
+产物为 `dist/antigravity-hans-windows-amd64-local.exe`，内嵌构建时的本地词库。启动时显示的词库指纹可与构建脚本输出的 SHA-256 前 16 位核对；同目录存在通过校验的外部词库时，启动器会优先使用外部词库。
+
+若原程序正在运行，可用 `-OutputPath` 指定另一个输出文件，避免覆盖正在使用的程序：
+
+```powershell
+pwsh -File .\tools\build-windows.ps1 -OutputPath .\dist\antigravity-hans-windows-amd64-custom.exe
 ```
 
 ---
 
-## 更新说明
+## 参与贡献
 
-### v0.9.0
+由于学业繁忙，更新可能不够及时，敬请谅解。欢迎提交 PR 补充词条、适配新版本或修复问题。
 
-**词库与适配 (Antigravity 2.29.0)**
-
-- **全面适配普通版 Antigravity 2.29.0**：提取并核对最新 10.67 MB 前端资源包（SHA-256: `8D1196A22CD3EB9779E8FAF5C31EB732D3DF8D9D037B685733ED4E3D6CDFB5A2`），词库扩充至 **2750 条**（新增 142 条核心词条）。
-- **支线提问与旁支对话**：完整汉化支线提问（`Side Question`）、不中断主对话的支线提问、停止支线提问及提问进行中禁止提升等交互控制。
-- **计划任务与本地自动化**：新增添加/修改/自定义计划任务流程、每月几号/每周几定时触发、事件驱动自动化（`Creates a local automation that runs on this computer`）、自动化账户绑定与运行记录跟踪。
-- **连接器发现与 GitHub 认证**：新增连接器（`Connectors`）浏览与搜索、MCP 资源与规则浏览、终端 `gh auth login` 一键复制与 GitHub 主机认证链路。
-- **语音模式与 Gemini Live 音色库**：新增 Gemini Live 驱动的 3 款预设音色（`Arlo`、`Cleo`、`Tari`）与风格标注（清晰亲切、自信清晰、深沉醇厚、温暖亲和）、麦克风切换、语速调节与试听回放。
-- **内置浏览器安全防护与下载管理**：新增不安全连接警示、TLS 协议与不受信任证书拦截、侧边栏与浏览器历史记录及自动补全清理、下载任务列表与文件夹定位。
-- **面板布局与键盘交互增强**：新增底部面板（`Bottom Panel`）控制、终端显示位置设置、侧边栏最大化切换、键盘 Enter 键直接发送消息与发送按钮旁上下文窗口用量指示器。
-- **质量门禁**：通过 `lint-overlay.mjs` 词库语法体检（2750 条 0 错误 0 警告），`overlay.test.mjs` 15 项单测全数通过。
-
-### v0.8.2
-
-**词库与适配 (Antigravity 2.28.2)**
-
-- **全面适配普通版 Antigravity 2.28.2**：提取并核对最新 10.16 MB 前端资源包（SHA-256: `C3C5C9BB6D418E8D919CB94AA7DE4DF9BA449056B7D6122C32279CE72E2D2BAD`），词库扩充至 **2608 条**（新增 112 条核心词条）。
-- **账户状态与认证链路**：新增账户标签页（`Accounts tab`）、身份认证（`Authenticate` / `Authentication Required`）、会话过期重新登录提示、Google 账号切换与已连接应用权限管理。
-- **技能与插件市场探索**：新增智能体市场搜索结果展示、插件市场自定义项探索、技能指引文案说明、技能配置文件扫描与推荐技能一键启用。
-- **工作区与云端项目操作**：新增工作区克隆为全新独立工作区、临时与分支工作区查看、云端项目与挂载资源说明、重名项目检查与工作区卸载。
-- **会话记录与多响应优选**：新增会话 ID 与复制消息、工件评论与框选标注、屏幕录制控制、复杂任务多响应提示、双候选优选模式（Best-of-2）与用量超额控制。
-- **设置面板与字体外观**：新增 Google Sans 替代 Inter 默认字体设置、实验性视觉主题切换、随设置导入主题以及全局遥测配置依赖提示。
-- **质量门禁**：通过 `lint-overlay.mjs` 词库语法体检（2608 条 0 错误 0 警告），`overlay.test.mjs` 14 项单测全数通过。
-
-### v0.8.1
-
-**词库与适配 (Antigravity 2.28.1)**
-
-- **全面适配普通版 Antigravity 2.28.1**：逐条对照最新前端构建产物（SHA-256: `ED358594A9ADCD0B129EB5B0C202CB3BFFF67FE4523C62B26EB204B94461CF82`），词库扩充至 **2496 条**。
-- **插件市场免责声明与元数据**：新增第三方工具免责声明（`Marketplace notice`）、插件元数据展示（`Plugin metadata`）、插件搜索无结果反馈（`No plugins match your search.`、`No plugins available in the marketplace.`）及声明 Flag 解析异常提示。
-- **基础操作与系统标识补齐**：补齐此电脑（`This Computer`）、后台命令（`Background Commands`）、自动检测（`Auto (detected)`）、渲染失败、剪切/粘贴/选择/前进等高频控制项。
-- **质量门禁**：通过 `lint-overlay.mjs` 词库语法体检（2496 条 0 错误 0 警告），`overlay.test.mjs` 13 项单测全数通过。
-
-### v0.8.0
-
-**词库与适配 (Antigravity 2.28.0)**
-
-- **全面适配普通版 Antigravity 2.28.0**：提取并逐条比对最新 10.15 MB 前端资源包，词库大幅扩充至 **2472 条**（新增 457 条核心词条）。
-- **辅助面板与工作区新视图**：新增辅助面板（Auxiliary Pane）最大化/还原控制、Sidecar 视图、虚拟文件查看器（Virtual File Viewer）、产物查看器（Artifact Viewer）、目录查看器及在新标签页中打开对话等操作。
-- **全局快捷键管理与录制**：完整汉化快捷键编辑对话框、按键录制、添加/移除快捷键、恢复默认值及快捷键列表搜索与无匹配反馈。
-- **实验性 Flag 调试与功能环境模拟**：新增 Flag 标志搜索与开启、控制台输出遥测、功能环境覆盖（模拟不同操作系统、Electron/Web/移动端宿主环境及用户群体准入）。
-- **实时语音通话与音效引擎**：新增实时语音通话（Live Chat）开启/结束、麦克风静音控制、语音中继（Talker + Narrator）与媒体全屏播放控制。
-- **内置浏览器安全与证书详情**：完整覆盖内置浏览器前进/后退/刷新/按键/滚动状态、站点安全连接信息、SSL/TLS 证书有效性/颁发者/有效期详情及站点允许列表管理。
-- **智能体浏览器动作自动化**：全面补齐智能体操控浏览器全套过程文案（模拟按键、移动鼠标、输入文本、选择选项、双向滚动、窗口缩放、截屏、DOM 提取与网络请求捕获）。
-- **MCP 应用与执行 Hook 体系**：新增 MCP App 状态与应用管理、工具执行前/后及循环终止 Hook 触发器卡片与配置管理。
-- **智能体审核交互与问卷**：补齐终端与 URL 权限请求、问卷多选交互、输入等待、会话摘要生成状态及错误堆栈定位。
-- **差异对比与快照撤销**：新增工作区还原快照说明、撤销确认、差异折叠/展开、Best of N 节点消息保护及限制提示。
-- **质量门禁**：通过 `lint-overlay.mjs` 词库语法体检（2472 条 0 错误 0 警告），`overlay.test.mjs` 12 项单测全数通过。
-
-### v0.7.0
-
-**词库与适配 (Antigravity 2.27.0)**
-
-- **全面适配普通版 Antigravity 2.27.0**：提取并核对最新 10.4MB 前端资源包，词库扩充至 **2015 条**。
-- **Token 预算与扩展配额管理**：新增自定义项与规则 Token 预算超限提示、超限自动降级为路径指针说明、长上下文（512K/900K）每轮配额消耗倍率警告、用量明细与剩余额度提醒文案。
-- **Git 提交与暂存管理**：新增基于当前对话智能生成提交说明（Commit Message）、暂存区（Stage/Unstage）差异比较与提交、追加合并（Amend）、多工作树（Worktree）共享等完整版本控制流程汉化。
-- **语音模式与音色选择**：新增 Jetski 音色选择器（Voices）、输入设备麦克风选择、音量调节以及 8 种官方预设音色（Zephyr/Puck/Charon/Kore/Fenrir/Aoede/Leda/Orus）中文标注。
-- **标签页与窗口管理**：新增标签页固定（Pin/Unpin Tab）、关闭其他标签页、关闭右侧标签页、打开的标签页与重新加载窗口等快捷操作。
-- **工作区迁移与旧架构废弃**：适配 Google3/Piper 旧项目废弃提示、指引迁移至 CitC 工作区及应用全局设置的完整通知链路。
-- **智能体插件与钩子配置**：新增模型调用前/后（Pre/Post Invocation）、工具调用前/后（Pre/Post Tool Use）生命周期钩子配置与处理器管理。
-- **质量门禁与排障**：针对 2.27.0 实例执行 30 轮自动化开闭与多标签页切换压力测试，达成 100% 成功率（30/30），词库语法体检保持 0 错误 0 警告，单测套件 11/11 全数通过。
-
-### v0.6.2
-
-**修复设置面板无法打开问题，精简纯净微任务同步汉化**
-
-- **彻底移除破坏性 opacity 规则**：移除此前引入的 CSS 平滑遮罩（`[role="dialog"]:not([data-zh-ready="true"]) { opacity: 0 !important; }`），根除因外层 backdrop 选择器阻断导致内部弹窗容器永久处于不可见状态（`opacity: 0`）的缺陷。
-- **纯微任务零等待同步渲染**：完全依托微任务阶段同帧同步翻译能力，在 DOM 挂载首帧完成替换，在彻底杜绝文字闪烁（Zero-FOUC）的同时，确保弹窗、抽屉及标签页 100% 正常弹出并可见。
-- **高强度 30 轮自动化排障与压力验证**：在真实 Antigravity 2.26 运行时下建立 30 轮连续开闭与多选项卡切换（常规/对话/模型/外观/快捷键）测试套件，达成 100% 通过率（30/30 成功，0 失败），验证零闪烁、零残留、零透明度锁死。
-
-### v0.6.1
-
-**彻底消除对话区与设置标签页翻译闪烁 (Zero-FOUC)**
-
-- **微任务同步翻译引擎**：移除此前将 DOM 翻译推迟至宏任务（`setTimeout(..., 0)`）的排队机制，改为在 MutationObserver 微任务检查点直接同步完成文本与属性替换。确保浏览器在首帧排版与渲染（Paint）之前即完成汉化，彻底杜绝对话区消息气泡、工具调用卡片、状态文案及侧边栏的文字闪烁跳变。
-- **设置子面板与选项卡平滑切换**：平滑渲染遮罩扩展适配 `[role="tabpanel"]`、`[data-panel]` 等设置子页面容器，确保在设置内部切换各个标签页（如通用、对话、模型等）时完全无感。
-- **防重入与二次触发抑制**：引入 `__lastTranslatedValue` 变更比对与自更新锁机制，杜绝汉化写入触发二次 Observer 回调。
-
-### v0.6.0
-
-**词库与适配 (Antigravity 2.26.0)**
-
-- 全面适配普通版 **Antigravity 2.26.0**，词库扩充至 **1725 条**，核对实际运行加载的前端 `main.js`（10MB+）及底层资源。
-- **工作区分支与分流**：新增在当前/共享/新工作区创建分支（Fork Conversation）、工作树创建、工作区 CL 状态与 URI 切换器汉化。
-- **内置浏览器与 Web 预览**：新增独立网页应用（IWA）环境检测、内置浏览器标签页、外链导航及右键菜单汉化。
-- **模型与团队协同**：新增自定义模型（Custom Model）配置、计费模式（Billing Model）选择、智能体团队（Agent Team）及视频分析状态汉化。
-- **对话评价与反馈系统**：新增对话打分与原因分类（意图理解、代码质量、幻觉排查等）完整反馈流程汉化。
-- **企业网关与 SSO**：新增企业账号登录、高级 SSO / WIF 凭据配置及多区域许可证管理文案。
-- **文档与图表工具**：补齐内置 PDF 阅读标注工具栏及 Mermaid 架构图控制组件文案。
-- 质量保障：回归测试套件全部通过（10/10），词库体检保持 0 错误 0 警告。
-
-### v0.5.1
-
-**体验优化与 Anti-FOUC**
-
-- 解决设置面板与各类弹窗打开时文字闪烁（从英文跳成中文）的问题：引入 CSS 平滑遮罩与同步预处理机制，在弹窗挂载第一帧同步完成文本替换并瞬时淡入，彻底消除界面中英跳变。
-- 工具链升级与安全修复：`go.mod` 声明升级至 Go 1.26.10，解决旧版标准库安全隐患（GO-2026-6809）。
-
-### v0.5.0
-
-**词库与适配**
-
-- 适配普通版 **Antigravity 2.25.0**，词库扩充至 1500 条，对照实际运行加载的前端 `main.js` 与核心包资源完成核验。
-- 新增轨迹与调试视图（Trajectory Debug View）文案及加载状态汉化。
-- 新增多工作区类型（Piper g4、JJ、Cog GoB、Fig、ABFS Alpha、CitC 独立工作区分组及工作树操作）汉化。
-- 新增自动化与计划调度任务（`/automation` 计划与事件、触发及定时提示词、凭据刷新）汉化。
-- 新增智能体脚本与 Sidecar 配置（全局与工作区脚本目录、命令规范配置）汉化。
-- 新增插件市场与 MCP 扩展体系（一键安装、必填项校验、权限审核）汉化。
-- 补齐产物评论、文件差异评论、网页内嵌限制提示、媒体下载保存与 Google 云端硬盘导出相关文案。
-- 补齐更新管理（下载更新、正在安装更新、重启以更新等）文案。
-- 词库体检脚本 `tools/lint-overlay.mjs` 与回归测试套件全面通过，新增 2.25.0 控件测试用例。
-
-### v0.4.5
-
-**安全**
-
-- 不再传入 `--remote-allow-origins=*`：CDP 调试端口本身无鉴权，该参数会关闭浏览器针对 DNS rebinding 的防护；本工具的 WebSocket 客户端默认不发送 Origin 头，并不需要它。
-- 外部汉化脚本增加类型、所有者、权限、体积与汉化标记检查；Unix 默认校验脚本及目录，Windows 默认使用内嵌词库，显式信任仍保留类型与大小限制。
-- 启动路径校验：注册表读到的候选路径必须与目标可执行文件同名，且启动前再次校验（存在 / 普通文件 / 非符号链接）。
-
-**健壮性**
-
-- 修复断线重连时递归调用导致的 Watchdog goroutine 泄漏，改为就地退避重连（1.5s → 5s，最长 30 秒）。
-- macOS 与 Windows 均改为先请求应用**正常退出**；取消、拒绝或超时会中止重启，避免丢失正在进行的会话。
-- 调试端口自动避让占用并支持复用；`--nogui` 下不再等待标准输入（原先多安装实例会永久挂起）。
-- 新增监视器单实例锁与 `--stop`；macOS 快捷方式的监视进程日志落盘到 `~/Library/Logs/antigravity-hans.log`。
-
-**词库与质量**
-
-- 修复历史失效词条及沙盒确认框漏译，适配普通版 Antigravity 2.23.0，词库扩充至 1300 条。
-- 尽可能调整了中英文夹杂的问题，修复了目前可见的中英文互相参杂的问题。
-- 新增词库体检脚本 `tools/lint-overlay.mjs`，并接入 CI。
-- Go 工具链升级到 1.26.9（1.25 已停止支持），新增 CI 质量门禁：gofmt / go vet / go test / 词库 lint / govulncheck。
-- 补充权限目标保留、词库版本替换、动态文案与跳过区域回归测试。
-
-### v0.4.4
-
-- 词库引入短词精准匹配与智能体进度解析，完善全局权限与远程控制相关汉化。
+新版本适配与词条维护流程见 [适配技能](.github/skills/antigravity-hans-adaptation/SKILL.md)，提交前请运行词库 lint 与回归测试。
 
 ---
 
 ## 致谢
 
-- 本项目 fork 自 [yuexps/Antigravity-Hans](https://github.com/yuexps/Antigravity-Hans)，感谢原作者与所有贡献者。
+- 感谢所有为本项目提交代码、文档、测试、Issue 的贡献者。
+
+<a href="https://github.com/yuexps/Antigravity-Hans/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=yuexps/Antigravity-Hans" alt="contributors" />
+</a>
+
+---
+
 - 汉化词库参考：[antigravity-chinese](https://github.com/kdczyz/antigravity-chinese)

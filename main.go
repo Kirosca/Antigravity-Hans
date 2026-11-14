@@ -41,18 +41,20 @@ func main() {
 		fmt.Println("\n\n[提示] 汉化监视已由用户终止退出。")
 		os.Exit(0)
 	}()
+	if containsArg(args, "--stop") {
+		stopMonitors(monitorTargets(args))
+		return
+	}
 
 	// 加载汉化 JS（可执行文件同目录的外部脚本需先通过完整性校验）
 	overlaySource := LoadOverlaySource(containsArg(args, "--trust-external-overlay"))
+	// 在汉化脚本前注入同目录 custom-translations.txt 中的自定义翻译名单
+	trustCustomTranslations := containsArg(args, trustCustomTranslationsArg)
+	overlaySource = customTranslationsPrelude(LoadCustomTranslations(trustCustomTranslations)) + overlaySource
 
 	// 命令行参数模式（非交互）
 	if len(args) > 0 {
-		// 结束由本工具启动的汉化监视器
-		if containsArg(args, "--stop") {
-			stopMonitors(monitorTargets(args))
-			return
-		}
-
+		input := bufio.NewReader(os.Stdin)
 		// 静态补丁参数
 		if containsArg(args, "--patch") || containsArg(args, "-patch") {
 			runPatchMenu(overlaySource)
@@ -63,31 +65,32 @@ func main() {
 		isShortcut := containsArg(args, "--shortcut") || containsArg(args, "-shortcut") || containsArg(args, "--create-shortcut")
 		isApp := containsArg(args, "--app") || containsArg(args, "-app")
 		isIDE := containsArg(args, "--ide") || containsArg(args, "-ide")
+		attachOnly := containsArg(args, "--attach-only")
 
 		if isShortcut {
 			if isIDE {
-				if err := CreateChineseShortcut(AppIDE); err != nil {
+				if err := CreateChineseShortcut(AppIDE, trustCustomTranslations); err != nil {
 					fmt.Printf("[错误] 创建快捷方式失败: %v\n", err)
 				}
 				return
 			} else if isApp {
-				if err := CreateChineseShortcut(AppNormal); err != nil {
+				if err := CreateChineseShortcut(AppNormal, trustCustomTranslations); err != nil {
 					fmt.Printf("[错误] 创建快捷方式失败: %v\n", err)
 				}
 				return
 			}
 			// 未指定应用，默认两者都创建
-			_ = CreateChineseShortcut(AppNormal)
-			_ = CreateChineseShortcut(AppIDE)
+			_ = CreateChineseShortcut(AppNormal, trustCustomTranslations)
+			_ = CreateChineseShortcut(AppIDE, trustCustomTranslations)
 			return
 		}
 
 		// 动态汉化参数
 		if isIDE {
-			Run(AppIDE, overlaySource, interactive)
+			Run(AppIDE, overlaySource, interactive, attachOnly, input)
 			return
 		} else if isApp {
-			Run(AppNormal, overlaySource, interactive)
+			Run(AppNormal, overlaySource, interactive, attachOnly, input)
 			return
 		}
 
@@ -100,15 +103,17 @@ func main() {
 		fmt.Println("  antigravity-hans --shortcut --app  # 生成 Antigravity 中文快捷方式")
 		fmt.Println("  antigravity-hans --shortcut --ide  # 生成 Antigravity IDE 中文快捷方式")
 		fmt.Println("  antigravity-hans --stop            # 结束由本工具启动的汉化监视器")
+		fmt.Println("  antigravity-hans --app --attach-only  # 仅连接已有调试端口，不启动或重启应用")
 		fmt.Println("  antigravity-hans --trust-external-overlay  # 跳过校验，强制加载同目录外部汉化脚本")
+		fmt.Println("  antigravity-hans --trust-custom-translations  # 显式信任同目录自定义翻译名单")
 		return
 	}
 
 	// 交互式主菜单
-	runMainMenu(overlaySource)
+	runMainMenu(overlaySource, trustCustomTranslations)
 }
 
-func runMainMenu(overlaySource string) {
+func runMainMenu(overlaySource string, trustCustomTranslations bool) {
 	reader := bufio.NewReader(os.Stdin)
 
 	// 启动时一次性检测中文语言包
@@ -137,11 +142,11 @@ func runMainMenu(overlaySource string) {
 		switch choice {
 		case "1":
 			fmt.Println("\n正在启动 Antigravity 动态汉化...")
-			Run(AppNormal, overlaySource, true)
+			Run(AppNormal, overlaySource, true, false, reader)
 			pressEnterToContinue(reader)
 		case "2":
 			fmt.Println("\n正在启动 Antigravity IDE 动态汉化...")
-			Run(AppIDE, overlaySource, true)
+			Run(AppIDE, overlaySource, true, false, reader)
 			pressEnterToContinue(reader)
 		case "3":
 			runPatchMenu(overlaySource)
@@ -157,16 +162,16 @@ func runMainMenu(overlaySource string) {
 			subChoice := strings.TrimSpace(subLine)
 			if subChoice == "" || subChoice == "1" {
 				fmt.Println("\n正在生成快捷方式...")
-				_ = CreateChineseShortcut(AppNormal)
-				_ = CreateChineseShortcut(AppIDE)
+				_ = CreateChineseShortcut(AppNormal, trustCustomTranslations)
+				_ = CreateChineseShortcut(AppIDE, trustCustomTranslations)
 			} else if subChoice == "2" {
 				fmt.Println("\n正在生成 Antigravity 中文快捷方式...")
-				if err := CreateChineseShortcut(AppNormal); err != nil {
+				if err := CreateChineseShortcut(AppNormal, trustCustomTranslations); err != nil {
 					fmt.Printf("[错误] 生成失败: %v\n", err)
 				}
 			} else if subChoice == "3" {
 				fmt.Println("\n正在生成 Antigravity IDE 中文快捷方式...")
-				if err := CreateChineseShortcut(AppIDE); err != nil {
+				if err := CreateChineseShortcut(AppIDE, trustCustomTranslations); err != nil {
 					fmt.Printf("[错误] 生成失败: %v\n", err)
 				}
 			} else {

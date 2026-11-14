@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -111,14 +112,40 @@ func cdpResponseError(resp map[string]interface{}, method string) error {
 func isTargetPage(rawURL, appName string) bool {
 	urlLower := strings.ToLower(rawURL)
 	if strings.Contains(strings.ToLower(appName), "ide") {
-		return strings.Contains(urlLower, "workbench.html") ||
-			strings.Contains(urlLower, "workbench-jetski-agent.html")
+		u, err := url.Parse(rawURL)
+		if err != nil || u.User != nil {
+			return false
+		}
+		localFile := u.Scheme == "file" && (u.Host == "" || strings.EqualFold(u.Host, "localhost"))
+		vscodeFile := u.Scheme == "vscode-file" && strings.EqualFold(u.Host, "vscode-app")
+		if !localFile && !vscodeFile {
+			return false
+		}
+		name := strings.ToLower(path.Base(u.Path))
+		return name == "workbench.html" || name == "workbench-jetski-agent.html"
 	}
 	if strings.HasPrefix(urlLower, "data:text/html") {
 		return true
 	}
 	u, err := url.Parse(rawURL)
 	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.User == nil && isLoopbackHost(u.Hostname())
+}
+
+// candidateTarget only identifies the shape of a target. IDE agent frames
+// require an additional process ownership check before any injection.
+func candidateTarget(target CDPTarget, cfg AppConfig) (bool, int) {
+	if isTargetPage(target.URL, cfg.Name) {
+		return true, 0
+	}
+	if (cfg.Name == AppNormal.Name || cfg.Name == AppIDE.Name) && isSwarmBoardTarget(target) {
+		return true, swarmFrame
+	}
+	if cfg.Name == AppIDE.Name {
+		if port, ok := ideAgentFramePort(target); ok {
+			return true, port
+		}
+	}
+	return false, 0
 }
 
 // truncateRunes 按字符（而非字节）截断，避免把中文标题截断成半个 UTF-8 字符
@@ -211,6 +238,32 @@ func checkTargetInjectedOnConn(conn *websocket.Conn, fingerprint ...string) (boo
 // 避免为每次操作频繁建立/断开短连接，彻底杜绝 Windows ConnectEx 端口耗尽 (WSAEADDRINUSE 10048) 冲突。
 // 返回值：(injected bool, isPermanentErr bool, err error)
 func EnsureTargetInjected(target CDPTarget, overlaySource string) (bool, bool, error) {
+	return ensureTargetInjected(target, overlaySource, 0)
+}
+
+// A positive agentPort identifies an IDE iframe whose listener ownership was
+// verified by the caller. The swarmFrame sentinel identifies a plugin frame.
+// Such frames can navigate, so the destination is checked again at execution.
+func ensureTargetInjected(target CDPTarget, overlaySource string, agentPort int) (bool, bool, error) {
+	var agentRoute string
+	var swarmHost string
+	if agentPort == swarmFrame {
+		var err error
+		swarmHost, err = swarmBoardHostForTarget(target)
+		if err != nil {
+			return false, true, err
+		}
+		// A plugin frame receives only the dedicated, fixed UI script, never the
+		// user's custom translations or a trusted external overlay.
+		overlaySource = embeddedSwarmOverlayJS
+	} else if agentPort != 0 {
+		port, ok := ideAgentFramePort(target)
+		if !ok || port != agentPort {
+			return false, true, fmt.Errorf("IDE 内嵌页面地址校验失败")
+		}
+		u, _ := url.Parse(target.URL)
+		agentRoute = u.Path
+	}
 	if target.WebSocketDebuggerURL == "" {
 		return false, true, fmt.Errorf("webSocketDebuggerUrl 为空")
 	}
@@ -247,15 +300,21 @@ func EnsureTargetInjected(target CDPTarget, overlaySource string) (bool, bool, e
 		}
 	}
 	injectionSource := fmt.Sprintf("window.__antigravityZhPatchRequestedFingerprint = %q;\n%s", fingerprint, overlaySource)
-
-	// 2. 启用 Page 域支持
-	_, _ = cdpCall(conn, "Page.enable", nil)
-
-	// 3. 注册新文档自动注入脚本（页面内部跳转、刷新后均自动生效）
-	if _, err := cdpCall(conn, "Page.addScriptToEvaluateOnNewDocument", map[string]interface{}{
-		"source": injectionSource,
-	}); err != nil {
-		return false, false, fmt.Errorf("监听页面刷新失败: %w", err)
+	if agentPort == swarmFrame {
+		injectionSource = swarmBoardInjectionSource(injectionSource, swarmHost)
+	} else if agentPort != 0 {
+		// Do not register a persistent new-document script on a webview. The
+		// frame could navigate to a different page; the watcher must recheck
+		// the new URL and listener owner before each subsequent injection.
+		injectionSource = ideAgentInjectionSource(injectionSource, agentPort, agentRoute)
+	} else {
+		// 2. 启用 Page 域支持并注册主页面刷新后的自动注入。
+		_, _ = cdpCall(conn, "Page.enable", nil)
+		if _, err := cdpCall(conn, "Page.addScriptToEvaluateOnNewDocument", map[string]interface{}{
+			"source": injectionSource,
+		}); err != nil {
+			return false, false, fmt.Errorf("监听页面刷新失败: %w", err)
+		}
 	}
 
 	// 4. 当前页面立即执行注入
@@ -323,7 +382,8 @@ func WaitForPort(port int, maxWaitMs int) bool {
 // Run 启动并监视目标应用。
 // interactive 为 false 时（--nogui / 后台启动）不会询问安装实例，
 // 否则在控制台被隐藏的快捷方式下会永久挂起。
-func Run(cfg AppConfig, overlaySource string, interactive bool) {
+// attachOnly 为 true 时只复用已开启的调试端口，不启动或重启应用。
+func Run(cfg AppConfig, overlaySource string, interactive, attachOnly bool, input *bufio.Reader) {
 	// 单实例保护：重复双击快捷方式会让多个监视器叠加注入
 	release, ok := acquireMonitorLock(cfg)
 	if !ok {
@@ -345,12 +405,17 @@ func Run(cfg AppConfig, overlaySource string, interactive bool) {
 		return
 	}
 
+	if attachOnly {
+		fmt.Printf("[提示] 未找到 %s 可复用的调试端口；仅连接模式不会启动或重启应用。\n", cfg.Name)
+		return
+	}
+
 	app := DetectApp(cfg)
 
 	// 进程未开启调试端口则重启
 	if app.Running {
 		fmt.Printf("[提示] 检测到 %s 正在运行，但未开启调试端口。正在重新拉起...\n", app.Name)
-		if !KillProcess(cfg) {
+		if !KillProcess(cfg, interactive, input) {
 			return
 		}
 		time.Sleep(1500 * time.Millisecond)
@@ -389,7 +454,10 @@ func Run(cfg AppConfig, overlaySource string, interactive bool) {
 			} else {
 				var choice int
 				fmt.Printf("请选择 (1-%d, 默认 1): ", len(app.AllPaths))
-				fmt.Scan(&choice)
+				if input != nil {
+					line, _ := input.ReadString('\n')
+					fmt.Sscan(line, &choice)
+				}
 				if choice < 1 || choice > len(app.AllPaths) {
 					choice = 1
 				}
@@ -481,9 +549,9 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 	injectionPending := make(map[string]bool)
 	verificationPending := make(map[string]bool)
 	permanentWarnings := make(map[string]bool)
-	fingerprint := overlayFingerprint(overlaySource)
 	injectIfMatch := func(target CDPTarget, rawURL, triggerType string) {
-		if target.ID == "" || !isTargetPage(rawURL, cfg.Name) {
+		candidate, agentPort := candidateTarget(target, cfg)
+		if target.ID == "" || !candidate {
 			return
 		}
 
@@ -503,17 +571,26 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 				delete(injectionPending, target.ID)
 				mu.Unlock()
 			}()
-
 			const maxAttempts = 3
 			var lastErr error
 			for attempt := 1; attempt <= maxAttempts; attempt++ {
-				// 单连接复用：一次性完成检查、Page.enable、addScriptToEvaluateOnNewDocument、evaluate 与复核
-				injected, isPermanent, err := EnsureTargetInjected(target, overlaySource)
+				// The iframe listener must still belong to this IDE instance on
+				// every attempt, including retries after the DOM becomes ready.
+				if agentPort > 0 && !isTrustedIDEAgentFrame(target, cfg, agentPort) {
+					return
+				}
+				// 单连接复用，检查当前页面并复核注入状态。
+				injected, isPermanent, err := ensureTargetInjected(target, overlaySource, agentPort)
 				if injected {
 					mu.Lock()
 					injectedSet[target.ID] = true
 					mu.Unlock()
 					title := getTargetTitle(target.Title, rawURL)
+					if agentPort == swarmFrame {
+						title = "Swarm 面板"
+					} else if agentPort != 0 {
+						title = "IDE 智能体页面"
+					}
 					fmt.Printf("[%s] 捕获到目标页面，成功注入汉化: %s (ID: %s)\n", triggerType, title, target.ID)
 					return
 				}
@@ -564,7 +641,8 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 			case <-ticker.C:
 				targets := CheckPort(cfg.Port)
 				for _, t := range targets {
-					if !isTargetPage(t.URL, cfg.Name) {
+					candidate, agentPort := candidateTarget(t, cfg)
+					if !candidate {
 						continue
 					}
 
@@ -581,15 +659,25 @@ func Watch(cfg AppConfig, overlaySource string, injectedSet map[string]bool, mu 
 						injectIfMatch(t, t.URL, "巡检自愈")
 					} else if alreadyInjected && !isPending {
 						// 复核已注入页面：若用户刷新导致文档重置（__observedDocument 失效），重新补刀
-						go func(target CDPTarget) {
+						go func(target CDPTarget, agentPort int) {
 							defer func() { mu.Lock(); delete(verificationPending, target.ID); mu.Unlock() }()
+							if agentPort > 0 && !isTrustedIDEAgentFrame(target, cfg, agentPort) {
+								mu.Lock()
+								delete(injectedSet, target.ID)
+								mu.Unlock()
+								return
+							}
+							fingerprint := overlayFingerprint(overlaySource)
+							if agentPort == swarmFrame {
+								fingerprint = overlayFingerprint(embeddedSwarmOverlayJS)
+							}
 							if !IsTargetInjected(target, fingerprint) {
 								mu.Lock()
 								delete(injectedSet, target.ID)
 								mu.Unlock()
 								injectIfMatch(target, target.URL, "巡检自愈")
 							}
-						}(t)
+						}(t, agentPort)
 					}
 				}
 			}
