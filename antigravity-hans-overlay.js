@@ -5383,6 +5383,120 @@
     mountToggleUI();
   }
 
+  // ===== Antigravity 2px 极简微圆角模块 (支持 Alt + B 实时切换与快捷键反馈) =====
+  (() => {
+    if (typeof window === 'undefined') return;
+    if (typeof window.__antigravityRadiusCleanup === 'function') {
+      try { window.__antigravityRadiusCleanup(); } catch (e) {}
+    }
+    const RADIUS_KEY = 'antigravity_radius_2px';
+    const STYLE_ID = 'antigravity-custom-radius-style';
+
+    function applyRadius(enabled) {
+      if (typeof document === 'undefined') return;
+      const staleIds = ['antigravity-custom-border-style', 'antigravity-custom-radius-test'];
+      for (const sid of staleIds) {
+        const el = document.getElementById(sid);
+        if (el && el.remove) el.remove();
+      }
+      let style = document.getElementById(STYLE_ID);
+      if (enabled) {
+        if (!style && document.head) {
+          style = document.createElement('style');
+          style.id = STYLE_ID;
+          style.textContent = [
+            '/* Antigravity 2px 极简微圆角模式 (border-radius: 2px) */',
+            '[class*="rounded"], [class*="rounded-"],',
+            'button, input, textarea, select, code, pre, kbd, a.agy-button,',
+            'div[role="button"], div[role="dialog"], div[role="tablist"], div[role="tab"],',
+            'div[role="menuitem"], div[role="tooltip"],',
+            '.agy-user-bubble, .agy-user-bubble-frame, .files-changed-header {',
+            '  border-radius: 2px !important;',
+            '}'
+          ].join('\n');
+          document.head.appendChild(style);
+        }
+      } else {
+        if (style && style.remove) style.remove();
+      }
+    }
+
+    let toastTimer = null;
+    function showToast(text) {
+      if (typeof document === 'undefined' || !document.body) return;
+      const id = 'antigravity-border-toast-container';
+      let container = document.getElementById(id);
+      if (!container) {
+        container = document.createElement('div');
+        container.id = id;
+        container.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:999999;display:flex;flex-direction:column;align-items:center;pointer-events:none;';
+        document.body.appendChild(container);
+      }
+      container.innerHTML = '';
+      if (toastTimer) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+      }
+      const toast = document.createElement('div');
+      toast.style.cssText = 'background:#18181b;color:#f4f4f5;border:1px solid rgba(255,255,255,0.22);border-radius:4px;padding:8px 18px;font-size:13px;font-family:system-ui,-apple-system,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,0.6);opacity:0;transition:opacity 0.15s ease,transform 0.15s ease;transform:translateY(-8px);pointer-events:auto;user-select:none;';
+      toast.textContent = text;
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+      });
+      toastTimer = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-8px)';
+        setTimeout(() => {
+          if (toast.parentElement) toast.remove();
+        }, 200);
+      }, 1800);
+    }
+
+    function getStoredRadius() {
+      try {
+        const val = localStorage.getItem(RADIUS_KEY);
+        if (val === null) return true;
+        return val === '1';
+      } catch (e) {
+        return true;
+      }
+    }
+
+    function setStoredRadius(enabled) {
+      try {
+        localStorage.setItem(RADIUS_KEY, enabled ? '1' : '0');
+      } catch (e) {}
+    }
+
+    let isRadiusEnabled = getStoredRadius();
+    applyRadius(isRadiusEnabled);
+
+    function handleKeyToggle(e) {
+      if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey && (e.key === 'b' || e.key === 'B' || e.code === 'KeyB')) {
+        e.preventDefault();
+        e.stopPropagation();
+        isRadiusEnabled = !isRadiusEnabled;
+        setStoredRadius(isRadiusEnabled);
+        applyRadius(isRadiusEnabled);
+        showToast(isRadiusEnabled ? '已开启 2px 极简微圆角' : '已恢复系统默认圆角');
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyToggle, true);
+
+    window.__antigravityRadiusCleanup = () => {
+      applyRadius(false);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('keydown', handleKeyToggle, true);
+      }
+      if (toastTimer) clearTimeout(toastTimer);
+      const container = document.getElementById('antigravity-border-toast-container');
+      if (container) container.remove();
+    };
+  })();
+
   if (document.readyState === 'loading') {
     window.addEventListener('DOMContentLoaded', run, { once: true });
   } else {
