@@ -1,6 +1,6 @@
 (() => {
   if (typeof window === 'undefined') return;
-  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.32.1-20261115-r20';
+  const fingerprint = window.__antigravityZhPatchRequestedFingerprint || 'app-2.33.0-20261120-r21';
   if (window.__antigravityZhPatchInstalled === true && window.__observedDocument === document && window.__antigravityZhPatchFingerprint === fingerprint) return;
   const updating = window.__antigravityZhPatchInstalled === true && window.__observedDocument === document;
   if (typeof window.__antigravityZhPatchCleanup === 'function') window.__antigravityZhPatchCleanup();
